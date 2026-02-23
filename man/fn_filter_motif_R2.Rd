@@ -7,18 +7,20 @@
 fn_filter_motif_R2(
   fq1,
   fq2,
+  base.name,
   motif = "CCATTGTCACGCTCTCTACCGGAACCAG",
   mismatches = 2,
   trim = TRUE,
   output.dir = "db/fq_filtered/",
-  cores = 4,
-  suffix = "filtered"
+  cores = 4
 )
 }
 \arguments{
-\item{fq1}{Character vector of R1 FASTQ files.}
+\item{fq1}{Character string. Path to R1 FASTQ file.}
 
-\item{fq2}{Character vector of R2 FASTQ files.}
+\item{fq2}{Character string. Path to R2 FASTQ file.}
+
+\item{base.name}{Base name for output files.}
 
 \item{motif}{Character string of the motif to match at position 1 of R2. Default: "CCATTGTCACGCTCTCTACCGGAACCAG".}
 
@@ -26,20 +28,12 @@ fn_filter_motif_R2(
 
 \item{trim}{Logical. If TRUE, remove the motif from R2. If FALSE, keep motif but still filter. Default: TRUE.}
 
-\item{output.dir}{Directory for filtered FASTQs. Default: "db/fq/motif_filtered/".}
+\item{output.dir}{Directory for filtered FASTQs. Default: "db/fq_filtered/".}
 
 \item{cores}{Number of threads. Default: 4.}
-
-\item{suffix}{Suffix to append to output file names. Default: "motifFiltered".}
 }
 \value{
-A \code{data.table} with:
-\itemize{
-\item \code{file.type}: fq1/fq2 labels
-\item \code{path}: paths to filtered FASTQ files
-\item \code{cmd}: shell command to perform filtering
-\item \code{job.name}: default job name "filter_motif_R2"
-}
+A \code{data.table} with columns: fq1_in, fq2_in, fq1_out, fq2_out, cmd.
 }
 \description{
 Keeps only read pairs where R2 starts with the specified motif.

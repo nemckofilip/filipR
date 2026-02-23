@@ -1,6 +1,5 @@
 #' Deduplicate Reads using UMI-tools
 #'
-#' @name fn_umi_dedup
 #' @description
 #' Removes PCR duplicates using UMI-tools.
 #' Assumes UMIs are in the read header (read_id).
@@ -16,80 +15,77 @@
 #' @param paired Logical. If TRUE, use paired-end mode. If FALSE, single-end. If NULL (default), auto-detect from BAM.
 #' @param cores Number of threads. Used for the temporary indexing step.
 #'
-#' @return A data.table with columns: bam_in, bam_dedup, stats, cmd, job.name.
+#' @return A data.table with columns: bam_in, bam_dedup, stats, cmd.
 #' @export
 fn_umi_dedup <- function(bam, 
                          base.name,
-                         output.dir = 'db/bam_dedup/', 
-                         stats.dir = 'db/umi_stats/',
-                         umi_separator = '_',
+                         output.dir = "db/bam_dedup/", 
+                         stats.dir = "db/umi_stats/",
+                         umi_separator = "_",
                          paired = NULL,
                          cores = 4) {
 
-  # 1. Checks
-  if(length(bam) > 1) stop('fn_umi_dedup processes one file at a time.')
-  if(!file.exists(bam)) warning("BAM file not found: ", bam)
-  if(!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
-  if(!dir.exists(stats.dir)) dir.create(stats.dir, recursive = TRUE)
+  # ---- Input validation ----
+  if (length(bam) != 1) stop("fn_umi_dedup processes one file at a time.")
+  if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
+  if (!dir.exists(stats.dir)) dir.create(stats.dir, recursive = TRUE)
 
-  # 2. Define Paths
-  bam_dedup <- file.path(output.dir, paste0(base.name, '_dedup.bam'))
-  stats_prefix <- file.path(stats.dir, paste0(base.name, '_dedup'))
+  # ---- Output paths ----
+  bam_dedup <- file.path(output.dir, paste0(base.name, "_dedup.bam"))
+  stats_prefix <- file.path(stats.dir, paste0(base.name, "_dedup"))
   
-  # 3. Build Command
+  # ---- Build command ----
   
   # Step A: Check for index, create if missing (umi_tools needs it)
   cmd_index <- paste0(
-    'if [ ! -f ', bam, '.bai ]; then ',
-    'echo "Creating temporary index..."; ',
-    'samtools index -@ ', cores, ' ', shQuote(bam), '; ',
-    'INDEX_CREATED=1; ',
-    'else INDEX_CREATED=0; fi'
+    "if [ ! -f ", bam, ".bai ]; then ",
+    "echo 'Creating temporary index...'; ",
+    "samtools index -@ ", cores, " ", shQuote(bam), "; ",
+    "INDEX_CREATED=1; ",
+    "else INDEX_CREATED=0; fi"
   )
 
   # Step B: Detect paired-end if not specified
-  if(is.null(paired)) {
-    # Auto-detect: check if BAM has paired reads (flag 0x1)
+  if (is.null(paired)) {
     cmd_detect <- paste0(
-      'if samtools view -c -f 1 ', shQuote(bam), ' | grep -q "^0$"; then ',
-      'PAIRED_FLAG=""; ',
-      'else PAIRED_FLAG="--paired"; fi'
+      "if samtools view -c -f 1 ", shQuote(bam), " | grep -q '^0$'; then ",
+      "PAIRED_FLAG=''; ",
+      "else PAIRED_FLAG='--paired'; fi"
     )
   } else {
-    cmd_detect <- paste0('PAIRED_FLAG="', if(paired) '--paired' else '', '"')
+    cmd_detect <- paste0("PAIRED_FLAG='", if (paired) "--paired" else "", "'")
   }
 
   # Step C: Run umi_tools dedup
   cmd_dedup <- paste(
-    'umi_tools dedup',
-    '-I', shQuote(bam),
-    '-S', shQuote(bam_dedup),
-    '$PAIRED_FLAG',
-    '--extract-umi-method=read_id',
-    paste0('--umi-separator=', shQuote(umi_separator)),
-    '--method=directional',
-    '--spliced-is-unique',
-    '--output-stats', shQuote(stats_prefix),
-    '--log', shQuote(paste0(stats_prefix, '.log'))
+    "umi_tools dedup",
+    "-I", shQuote(bam),
+    "-S", shQuote(bam_dedup),
+    "$PAIRED_FLAG",
+    "--extract-umi-method=read_id",
+    paste0("--umi-separator=", shQuote(umi_separator)),
+    "--method=directional",
+    "--spliced-is-unique",
+    "--output-stats", shQuote(stats_prefix),
+    "--log", shQuote(paste0(stats_prefix, ".log"))
   )
 
-  # Step D: Cleanup Index (only if we created it)
+  # Step D: Cleanup index (only if we created it)
   cmd_cleanup <- paste0(
-    'if [ $INDEX_CREATED -eq 1 ]; then ',
-    'rm ', shQuote(paste0(bam, '.bai')), '; ',
-    'fi'
+    "if [ $INDEX_CREATED -eq 1 ]; then ",
+    "rm ", shQuote(paste0(bam, ".bai")), "; ",
+    "fi"
   )
 
   # Combine
-  full_cmd <- paste(cmd_index, cmd_detect, cmd_dedup, cmd_cleanup, sep = ' && ')
+  full_cmd <- paste(cmd_index, cmd_detect, cmd_dedup, cmd_cleanup, sep = " && ")
 
-  # 4. Return metadata
+  # ---- Return data.table ----
   data.table::data.table(
     bam_in = bam,
     bam_dedup = bam_dedup,
-    stats = paste0(stats_prefix, '_edit_distance.tsv'),
+    stats = paste0(stats_prefix, "_edit_distance.tsv"),
     cmd = full_cmd,
-    job.name = paste0('dedup_', base.name),
     path = bam_dedup
   )
 }

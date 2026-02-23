@@ -5,7 +5,7 @@
 #' Outputs a clean counts file (gene_id, gene_name, count) and a statistics file.
 #' Supports single-end and paired-end data, stranded libraries.
 #'
-#' @param bam Character string. Path to the input BAM file. Only one file allowed.
+#' @param bam Character string. Path to the input BAM file.
 #' @param base.name Base name for output files.
 #' @param annotation.file Path to a GTF annotation file.
 #' @param paired Logical. TRUE for paired-end, FALSE for single-end. Default FALSE.
@@ -15,23 +15,21 @@
 #' @param output.dir Directory for counts and stats files. Default "db/counts/".
 #' @param cores Number of threads. Default 4.
 #'
-#' @return A data.table with columns: bam_in, counts, stats, cmd, job.name, path.
+#' @return A data.table with columns: bam_in, counts, stats, cmd.
 #' @export
 fn_featureCounts <- function(bam,
-                              base.name,
-                              annotation.file,
-                              paired = FALSE,
-                              strandSpecific = 1,
-                              allowMultiOverlap = FALSE,
-                              countMultiMapping = TRUE,
-                              output.dir = "db/counts/",
-                              cores = 4) {
+                             base.name,
+                             annotation.file,
+                             paired = FALSE,
+                             strandSpecific = 1,
+                             allowMultiOverlap = FALSE,
+                             countMultiMapping = TRUE,
+                             output.dir = "db/counts/",
+                             cores = 4) {
   
   # ---- Input validation ----
   if (length(bam) != 1) stop("fn_featureCounts processes one BAM file at a time.")
   if (!strandSpecific %in% c(0, 1, 2)) stop("strandSpecific must be 0, 1, or 2.")
-  if (!file.exists(bam)) warning("BAM file not found: ", bam)
-  if (!file.exists(annotation.file)) warning("Annotation file not found: ", annotation.file)
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
   
   # ---- Output paths ----
@@ -40,22 +38,22 @@ fn_featureCounts <- function(bam,
   stats_out <- paste0(counts_full, ".summary")
   
   # ---- Build command ----
-  cmd <- paste(
+  cmd <- paste0(
     "featureCounts",
-    if (paired) "-p --countReadPairs" else "",
-    "-s", strandSpecific,
-    "-T", cores,
-    "-t gene",
-    "-g gene_id",
-    if (countMultiMapping) "-M" else "",
-    "--extraAttributes gene_name",
-    if (allowMultiOverlap) "-O" else "",
-    "-a", shQuote(annotation.file),
-    "-o", shQuote(counts_full),
-    shQuote(bam),
-    "&& echo -e 'gene_id\\tgene_name\\tcount' >", shQuote(counts_out),
-    "&& tail -n +3", shQuote(counts_full), "| cut -f1,7,8 | sed 's/\\.[0-9]*\\t/\\t/' >>", shQuote(counts_out),
-    "&& rm", shQuote(counts_full)
+    if (paired) " -p --countReadPairs" else "",
+    " -s ", strandSpecific,
+    " -T ", cores,
+    " -t gene",
+    " -g gene_id",
+    if (countMultiMapping) " -M" else "",
+    " --extraAttributes gene_name",
+    if (allowMultiOverlap) " -O" else "",
+    " -a ", annotation.file,
+    " -o ", counts_full,
+    " ", bam,
+    " && echo -e 'gene_id\\tgene_name\\tcount' > ", counts_out,
+    " && tail -n +3 ", counts_full, " | cut -f1,7,8 | sed 's/\\.[0-9]*\\t/\\t/' >> ", counts_out,
+    " && rm ", counts_full
   )
   
   # ---- Return data.table ----
@@ -64,7 +62,6 @@ fn_featureCounts <- function(bam,
     counts = counts_out,
     stats = stats_out,
     cmd = cmd,
-    job.name = "featureCounts",
     path = counts_out
   )
 }

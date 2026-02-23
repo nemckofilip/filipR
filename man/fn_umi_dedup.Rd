@@ -30,7 +30,7 @@ fn_umi_dedup(
 \item{cores}{Number of threads. Used for the temporary indexing step.}
 }
 \value{
-A data.table with columns: bam_in, bam_dedup, stats, cmd, job.name.
+A data.table with columns: bam_in, bam_dedup, stats, cmd.
 }
 \description{
 Removes PCR duplicates using UMI-tools.

@@ -7,6 +7,7 @@
 fn_trimGalore(
   fq1,
   fq2 = NULL,
+  base.name,
   output.dir = "db/fq/",
   clip.5p.r1 = NULL,
   clip.5p.r2 = NULL,
@@ -16,14 +17,15 @@ fn_trimGalore(
   adapter.r2 = NULL,
   quality = 20,
   min.length = 20,
-  cores = 4,
-  suffix = "trim"
+  cores = 4
 )
 }
 \arguments{
-\item{fq1}{A non-empty character vector of .fq (or .fq.gz) file paths.}
+\item{fq1}{Character string. Path to R1 FASTQ file.}
 
-\item{fq2}{For paired-end data, a character vector of .fq (or .fq.gz) file paths matching fq1 files. Default NULL.}
+\item{fq2}{Character string. Path to R2 FASTQ file. Default NULL (single-end).}
+
+\item{base.name}{Base name for output files.}
 
 \item{output.dir}{Directory for output FASTQ files. Default "db/fq/".}
 
@@ -44,17 +46,9 @@ fn_trimGalore(
 \item{min.length}{Minimum read length to keep after trimming. Default 20.}
 
 \item{cores}{Number of threads. Default 4.}
-
-\item{suffix}{Suffix for output file.type column names. Default "trim".}
 }
 \value{
-A \code{data.table} with:
-\itemize{
-\item \code{file.type}: Output file labels (fq1.{suffix}, fq2.{suffix}).
-\item \code{path}: Paths to trimmed FASTQ files.
-\item \code{cmd}: Shell command to run Trim Galore.
-\item \code{job.name}: Default name for the job = "trimGalore".
-}
+A \code{data.table} with columns: fq1_in, fq2_in, fq1_out, fq2_out, cmd.
 }
 \description{
 General-purpose wrapper for Trim Galore. Handles single-end and paired-end reads.
@@ -63,12 +57,13 @@ Keeps read pairs synchronized when filtering.
 }
 \examples{
 # Single-end with default adapter detection
-cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz")
+cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", base.name = "sample1")
 
 # Paired-end with default adapter detection
-cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz")
+cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz", base.name = "sample1")
 
 # Paired-end with 20bp hard trim from 5' of R2 (e.g., RT primer removal)
-cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz", clip.5p.r2 = 20, suffix = "clipped")
+cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz", 
+                     base.name = "sample1", clip.5p.r2 = 20)
 
 }

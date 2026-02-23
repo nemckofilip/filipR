@@ -45,7 +45,7 @@ fn_star_map(
 \item{alignment.stats.output.dir}{Optional directory for STAR log files. Default: 'db/alignment_stats/'.}
 }
 \value{
-A data.table with columns: fq1_in, fq2_in, bam, stats, fq1_unmapped, fq2_unmapped, cmd, job.name.
+A data.table with columns: fq1_in, fq2_in, bam, stats, fq1_unmapped, fq2_unmapped, cmd.
 }
 \description{
 Maps reads to a reference genome using STAR.

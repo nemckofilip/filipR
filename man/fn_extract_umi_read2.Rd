@@ -7,6 +7,7 @@
 fn_extract_umi_read2(
   fq1,
   fq2,
+  base.name,
   output.dir = "db/fq_trimmed_umi/",
   umi.len = 8,
   script.path = system.file("perl", "extract_umi_read2.pl", package = "filipR"),
@@ -14,11 +15,13 @@ fn_extract_umi_read2(
 )
 }
 \arguments{
-\item{fq1}{Character vector of R1 FASTQ files.}
+\item{fq1}{Character string. Path to R1 FASTQ file.}
 
-\item{fq2}{Character vector of R2 FASTQ files.}
+\item{fq2}{Character string. Path to R2 FASTQ file.}
 
-\item{output.dir}{Directory for output FASTQ files. Default "db/fq_umi/".}
+\item{base.name}{Base name for output files.}
+
+\item{output.dir}{Directory for output FASTQ files. Default "db/fq_trimmed_umi/".}
 
 \item{umi.len}{Length of the UMI to extract. Default 8.}
 
@@ -28,7 +31,7 @@ Defaults to the script bundled with this package.}
 \item{cores}{Number of threads for compression (pigz). Default 4.}
 }
 \value{
-A data.table with the commands and new file paths.
+A data.table with columns: fq1_in, fq2_in, fq1_out, fq2_out, cmd.
 }
 \description{
 Uses a custom Perl script to extract the first N bases of Read 2 (UMI)

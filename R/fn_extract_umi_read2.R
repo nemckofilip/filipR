@@ -5,35 +5,36 @@
 #' and append it to the read ID of both Read 1 and Read 2.
 #' Read 2 is then trimmed by N bases.
 #'
-#' @param fq1 Character vector of R1 FASTQ files.
-#' @param fq2 Character vector of R2 FASTQ files.
-#' @param output.dir Directory for output FASTQ files. Default "db/fq_umi/".
+#' @param fq1 Character string. Path to R1 FASTQ file.
+#' @param fq2 Character string. Path to R2 FASTQ file.
+#' @param base.name Base name for output files.
+#' @param output.dir Directory for output FASTQ files. Default "db/fq_trimmed_umi/".
 #' @param umi.len Length of the UMI to extract. Default 8.
 #' @param script.path Path to the 'extract_umi_read2.pl' script. 
 #' Defaults to the script bundled with this package.
 #' @param cores Number of threads for compression (pigz). Default 4.
 #'
-#' @return A data.table with the commands and new file paths.
+#' @return A data.table with columns: fq1_in, fq2_in, fq1_out, fq2_out, cmd.
 #' @export
 fn_extract_umi_read2 <- function(fq1, 
-                           fq2, 
-                           output.dir = "db/fq_trimmed_umi/", 
-                           umi.len = 8,
-                           script.path = system.file("perl", "extract_umi_read2.pl", package = "filipR"),
-                           cores = 4) {
+                                 fq2, 
+                                 base.name,
+                                 output.dir = "db/fq_trimmed_umi/", 
+                                 umi.len = 8,
+                                 script.path = system.file("perl", "extract_umi_read2.pl", package = "filipR"),
+                                 cores = 4) {
   
-  # Checks
-  if(script.path == "") stop("Perl script 'extract_umi_read2.pl' not found. Please ensure it is in inst/perl/ or provide a path.")
-  if(!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
-  if(length(fq1) != length(fq2)) stop("fq1 and fq2 lengths differ")
-  missing_fq <- c(fq1, fq2)[!file.exists(c(fq1, fq2))]
-  if(length(missing_fq)) warning("Input files not found:\n  ", paste(missing_fq, collapse = "\n  "))
+  # ---- Input validation ----
+  if (length(fq1) != 1) stop("fn_extract_umi_read2 processes one sample at a time.")
+  if (length(fq2) != 1) stop("fn_extract_umi_read2 processes one sample at a time.")
+  if (script.path == "") stop("Perl script 'extract_umi_read2.pl' not found. Please ensure it is in inst/perl/ or provide a path.")
+  if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
 
-  # Generate Paths
-  fq1_out <- file.path(output.dir, paste0(sub("\\.(fq|fastq)(\\.gz)?$", "", basename(fq1)), "_umi.fq.gz"))
-  fq2_out <- file.path(output.dir, paste0(sub("\\.(fq|fastq)(\\.gz)?$", "", basename(fq2)), "_umi.fq.gz"))
+  # ---- Output paths ----
+  fq1_out <- file.path(output.dir, paste0(base.name, "_umi_R1.fq.gz"))
+  fq2_out <- file.path(output.dir, paste0(base.name, "_umi_R2.fq.gz"))
 
-  # Generate Commands
+  # ---- Build command ----
   cmd <- paste("perl", script.path, 
                "--r1", fq1, 
                "--r2", fq2, 
@@ -42,12 +43,13 @@ fn_extract_umi_read2 <- function(fq1,
                "--umi-len", umi.len,
                "--threads", cores)
 
-  dt <- data.table(
-    file.type = rep(c("fq1.umi", "fq2.umi"), each = length(fq1)),
-    path = c(fq1_out, fq2_out),
-    cmd = rep(cmd, 2), 
-    job.name = "umi_extract"
+  # ---- Return data.table ----
+  data.table::data.table(
+    fq1_in = fq1,
+    fq2_in = fq2,
+    fq1_out = fq1_out,
+    fq2_out = fq2_out,
+    cmd = cmd,
+    path = fq1_out
   )
-  
-  return(dt)
 }

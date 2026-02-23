@@ -21,13 +21,13 @@ fn_bowtie2_map(
 )
 }
 \arguments{
-\item{fq1}{Character vector of R1 FASTQ files.}
+\item{fq1}{Character string. Path to R1 FASTQ file.}
 
-\item{fq2}{Character vector of R2 FASTQ files. Can be NULL for single-end mapping.}
+\item{fq2}{Character string. Path to R2 FASTQ file. Default NULL (single-end).}
 
 \item{index}{Path to Bowtie2 index prefix.}
 
-\item{base.name}{Base name for output files (BAM, stats, unmapped). Overrides fq filenames.}
+\item{base.name}{Base name for output files.}
 
 \item{output.dir}{Directory for BAM and unmapped FASTQ. Default: 'db/bowtie2/'.}
 
@@ -43,12 +43,12 @@ fn_bowtie2_map(
 
 \item{max.ins}{Optional maximum insert size for paired-end reads. Default NULL (Bowtie2 default).}
 
-\item{multimapper.mode}{How to handle multi-mappers: "best" (default, report best/random), "all" (report all alignments), or "unique" (only unique mappers).}
+\item{multimapper.mode}{How to handle multi-mappers: "best" (default, report best/random), "all" (report all up to -k), or "unique" (only unique mappers).}
 
 \item{alignment.stats.output.dir}{Optional directory for Bowtie2 alignment stats. Defaults to output.dir.}
 }
 \value{
-A data.table with columns: fq1_in, fq2_in, bam, stats, fq1_unmapped, fq2_unmapped, cmd, job.name.
+A data.table with columns: fq1_in, fq2_in, bam, stats, fq1_unmapped, fq2_unmapped, cmd.
 }
 \description{
 Maps reads to a reference index using Bowtie2.

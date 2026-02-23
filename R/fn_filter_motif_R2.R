@@ -4,44 +4,40 @@
 #' Keeps only read pairs where R2 starts with the specified motif.
 #' Uses cutadapt for mismatch-tolerant matching. Optionally trims the motif from R2.
 #'
-#' @param fq1 Character vector of R1 FASTQ files.
-#' @param fq2 Character vector of R2 FASTQ files.
+#' @param fq1 Character string. Path to R1 FASTQ file.
+#' @param fq2 Character string. Path to R2 FASTQ file.
+#' @param base.name Base name for output files.
 #' @param motif Character string of the motif to match at position 1 of R2. Default: "CCATTGTCACGCTCTCTACCGGAACCAG".
 #' @param mismatches Integer. Number of mismatches allowed. Default: 2.
 #' @param trim Logical. If TRUE, remove the motif from R2. If FALSE, keep motif but still filter. Default: TRUE.
-#' @param output.dir Directory for filtered FASTQs. Default: "db/fq/motif_filtered/".
+#' @param output.dir Directory for filtered FASTQs. Default: "db/fq_filtered/".
 #' @param cores Number of threads. Default: 4.
-#' @param suffix Suffix to append to output file names. Default: "motifFiltered".
 #'
-#' @return A `data.table` with:
-#' - `file.type`: fq1/fq2 labels
-#' - `path`: paths to filtered FASTQ files
-#' - `cmd`: shell command to perform filtering
-#' - `job.name`: default job name "filter_motif_R2"
+#' @return A `data.table` with columns: fq1_in, fq2_in, fq1_out, fq2_out, cmd.
 #'
 #' @export
-fn_filter_motif_R2 <- function(fq1, fq2,
+fn_filter_motif_R2 <- function(fq1, 
+                               fq2,
+                               base.name,
                                motif = "CCATTGTCACGCTCTCTACCGGAACCAG",
                                mismatches = 2,
                                trim = TRUE,
                                output.dir = "db/fq_filtered/",
-                               cores = 4,
-                               suffix = "filtered") {
+                               cores = 4) {
 
   # ---- Input validation ----
-  if (length(fq1) != length(fq2)) stop("fq1 and fq2 must have the same length")
+  if (length(fq1) != 1) stop("fn_filter_motif_R2 processes one sample at a time.")
+  if (length(fq2) != 1) stop("fn_filter_motif_R2 processes one sample at a time.")
   if (!is.character(motif) || nchar(motif) == 0) stop("motif must be a non-empty string")
   if (!is.numeric(mismatches) || mismatches < 0) stop("mismatches must be a non-negative integer")
-  missing_fq <- c(fq1, fq2)[!file.exists(c(fq1, fq2))]
-  if(length(missing_fq)) warning("Input files not found:\n  ", paste(missing_fq, collapse = "\n  "))
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
 
   # ---- Calculate error rate from mismatches ----
   error_rate <- mismatches / nchar(motif)
 
-  # ---- Generate output FASTQ paths ----
-  fq1_out <- file.path(output.dir, sub("\\.(fq|fastq)(\\.gz)?$", paste0("_", suffix, "_R1.fq.gz"), basename(fq1)))
-  fq2_out <- file.path(output.dir, sub("\\.(fq|fastq)(\\.gz)?$", paste0("_", suffix, "_R2.fq.gz"), basename(fq2)))
+  # ---- Output paths ----
+  fq1_out <- file.path(output.dir, paste0(base.name, "_filtered_R1.fq.gz"))
+  fq2_out <- file.path(output.dir, paste0(base.name, "_filtered_R2.fq.gz"))
 
   # ---- Build cutadapt command ----
   # -G = 5' adapter on R2 (uppercase G for read2)
@@ -71,9 +67,11 @@ fn_filter_motif_R2 <- function(fq1, fq2,
 
   # ---- Return data.table ----
   data.table::data.table(
-    file.type = c(paste0("fq1.", suffix), paste0("fq2.", suffix)),
-    path = c(fq1_out, fq2_out),
+    fq1_in = fq1,
+    fq2_in = fq2,
+    fq1_out = fq1_out,
+    fq2_out = fq2_out,
     cmd = cmd,
-    job.name = "filter_motif_R2"
+    path = fq1_out
   )
 }

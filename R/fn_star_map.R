@@ -18,7 +18,7 @@
 #' @param multimapper.mode How to handle multi-mappers: "best" (default, random assignment, output 1), "all" (output all alignments), or "unique" (only unique mappers).
 #' @param alignment.stats.output.dir Optional directory for STAR log files. Default: 'db/alignment_stats/'.
 #'
-#' @return A data.table with columns: fq1_in, fq2_in, bam, stats, fq1_unmapped, fq2_unmapped, cmd, job.name.
+#' @return A data.table with columns: fq1_in, fq2_in, bam, stats, fq1_unmapped, fq2_unmapped, cmd.
 #' @export
 fn_star_map <- function(fq1, 
                         fq2 = NULL,
@@ -34,11 +34,9 @@ fn_star_map <- function(fq1,
                         alignment.stats.output.dir = "db/alignment_stats/") {
 
   # ---- Input validation ----
-  if (length(fq1) > 1) stop("fn_star_map processes one sample at a time.")
-  if (!is.null(fq2) && length(fq2) > 1) stop("fn_star_map processes one sample at a time.")
+  if (length(fq1) != 1) stop("fn_star_map processes one sample at a time.")
+  if (!is.null(fq2) && length(fq2) != 1) stop("fn_star_map processes one sample at a time.")
   if (!multimapper.mode %in% c("best", "all", "unique")) stop("multimapper.mode must be 'best', 'all', or 'unique'")
-  missing_fq <- c(fq1, fq2)[!file.exists(c(fq1, fq2))]
-  if(length(missing_fq)) warning("Input files not found:\n  ", paste(missing_fq, collapse = "\n  "))
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
   if (!dir.exists(alignment.stats.output.dir)) dir.create(alignment.stats.output.dir, recursive = TRUE)
 
@@ -72,17 +70,14 @@ fn_star_map <- function(fq1,
 
   # ---- Handle multi-mapper mode ----
   if (multimapper.mode == "best") {
-    # Random assignment, output only 1 alignment per read
     multimapper_flags <- paste(
       "--outMultimapperOrder Random",
       "--outSAMmultNmax 1"
     )
   } else if (multimapper.mode == "unique") {
-    # Only unique mappers
     outFilterMultimapNmax <- 1
     multimapper_flags <- ""
   } else {
-    # "all" mode: output all alignments (default STAR behavior)
     multimapper_flags <- ""
   }
 
@@ -150,7 +145,6 @@ fn_star_map <- function(fq1,
     fq1_unmapped = if (save.unmapped) fq1_unmapped else NA_character_,
     fq2_unmapped = if (save.unmapped) fq2_unmapped else NA_character_,
     cmd = cmd,
-    job.name = "STAR",
     path = bam_out
   )
 }
