@@ -7,7 +7,7 @@
 fn_submit(
   cmd,
   job.name = "myJob",
-  partition = "cpu_batch",
+  partition = "cpu_preemptible",
   cores = 4,
   mem = "16G",
   time = "04:00:00",
@@ -28,7 +28,7 @@ fn_submit(
 
 \item{job.name}{Name of the job. Default: "myJob".}
 
-\item{partition}{Slurm partition (e.g., "cpu", "cpu_batch", "gpu"). Default: "cpu".}
+\item{partition}{Slurm partition (e.g., "cpu", "cpu_batch", "gpu"). Default: "cpu_preemptible".}
 
 \item{cores}{Number of CPUs per task. Default: 4.}
 

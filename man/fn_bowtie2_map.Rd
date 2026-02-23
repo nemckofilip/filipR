@@ -43,7 +43,7 @@ fn_bowtie2_map(
 
 \item{max.ins}{Optional maximum insert size for paired-end reads. Default NULL (Bowtie2 default).}
 
-\item{multimapper.mode}{How to handle multi-mappers: "best" (default, report best/random), "all" (report all up to -k), or "unique" (only unique mappers).}
+\item{multimapper.mode}{How to handle multi-mappers: "best" (default, report best/random), "all" (report all alignments), or "unique" (only unique mappers).}
 
 \item{alignment.stats.output.dir}{Optional directory for Bowtie2 alignment stats. Defaults to output.dir.}
 }
