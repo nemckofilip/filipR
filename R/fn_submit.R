@@ -9,7 +9,7 @@
 #'   - `path`: (Optional) Output file path (used for existence checks).
 #'   - `file.type`: (Optional) Label.
 #' @param job.name Name of the job. Default: "myJob".
-#' @param partition Slurm partition (e.g., "cpu", "cpu_batch", "gpu"). Default: "cpu".
+#' @param partition Slurm partition (e.g., "cpu", "cpu_batch", "gpu"). Default: "cpu_preemptible".
 #' @param cores Number of CPUs per task. Default: 4.
 #' @param mem Memory allocation (e.g., "16G"). Default: "16G".
 #' @param time Time limit (HH:MM:SS). Default: "04:00:00".
@@ -23,7 +23,7 @@
 #' @export
 fn_submit <- function(cmd,
                       job.name= "myJob",
-                      partition= "cpu_batch",
+                      partition= "cpu_preemptible",
                       cores= 4,
                       mem= "16G",
                       time= "04:00:00",

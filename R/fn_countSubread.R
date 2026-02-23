@@ -30,6 +30,8 @@ fn_featureCounts <- function(bam,
   # ---- Input validation ----
   if (length(bam) != 1) stop("fn_featureCounts processes one BAM file at a time.")
   if (!strandSpecific %in% c(0, 1, 2)) stop("strandSpecific must be 0, 1, or 2.")
+  if (!file.exists(bam)) warning("BAM file not found: ", bam)
+  if (!file.exists(annotation.file)) warning("Annotation file not found: ", annotation.file)
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
   
   # ---- Output paths ----
@@ -38,22 +40,22 @@ fn_featureCounts <- function(bam,
   stats_out <- paste0(counts_full, ".summary")
   
   # ---- Build command ----
-  cmd <- paste0(
+  cmd <- paste(
     "featureCounts",
-    if (paired) " -p --countReadPairs" else "",
-    " -s ", strandSpecific,
-    " -T ", cores,
-    " -t gene",
-    " -g gene_id",
-    if (countMultiMapping) " -M" else "",
-    " --extraAttributes gene_name",
-    if (allowMultiOverlap) " -O" else "",
-    " -a ", annotation.file,
-    " -o ", counts_full,
-    " ", bam,
-    " && echo -e 'gene_id\\tgene_name\\tcount' > ", counts_out,
-    " && tail -n +3 ", counts_full, " | cut -f1,7,8 | sed 's/\\.[0-9]*\\t/\\t/' >> ", counts_out,
-    " && rm ", counts_full
+    if (paired) "-p --countReadPairs" else "",
+    "-s", strandSpecific,
+    "-T", cores,
+    "-t gene",
+    "-g gene_id",
+    if (countMultiMapping) "-M" else "",
+    "--extraAttributes gene_name",
+    if (allowMultiOverlap) "-O" else "",
+    "-a", shQuote(annotation.file),
+    "-o", shQuote(counts_full),
+    shQuote(bam),
+    "&& echo -e 'gene_id\\tgene_name\\tcount' >", shQuote(counts_out),
+    "&& tail -n +3", shQuote(counts_full), "| cut -f1,7,8 | sed 's/\\.[0-9]*\\t/\\t/' >>", shQuote(counts_out),
+    "&& rm", shQuote(counts_full)
   )
   
   # ---- Return data.table ----

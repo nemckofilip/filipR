@@ -37,6 +37,8 @@ fn_star_map <- function(fq1,
   if (length(fq1) > 1) stop("fn_star_map processes one sample at a time.")
   if (!is.null(fq2) && length(fq2) > 1) stop("fn_star_map processes one sample at a time.")
   if (!multimapper.mode %in% c("best", "all", "unique")) stop("multimapper.mode must be 'best', 'all', or 'unique'")
+  missing_fq <- c(fq1, fq2)[!file.exists(c(fq1, fq2))]
+  if(length(missing_fq)) warning("Input files not found:\n  ", paste(missing_fq, collapse = "\n  "))
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
   if (!dir.exists(alignment.stats.output.dir)) dir.create(alignment.stats.output.dir, recursive = TRUE)
 

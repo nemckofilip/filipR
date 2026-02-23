@@ -32,7 +32,8 @@ fn_filter_motif_R2 <- function(fq1, fq2,
   if (length(fq1) != length(fq2)) stop("fq1 and fq2 must have the same length")
   if (!is.character(motif) || nchar(motif) == 0) stop("motif must be a non-empty string")
   if (!is.numeric(mismatches) || mismatches < 0) stop("mismatches must be a non-negative integer")
-  
+  missing_fq <- c(fq1, fq2)[!file.exists(c(fq1, fq2))]
+  if(length(missing_fq)) warning("Input files not found:\n  ", paste(missing_fq, collapse = "\n  "))
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
 
   # ---- Calculate error rate from mismatches ----

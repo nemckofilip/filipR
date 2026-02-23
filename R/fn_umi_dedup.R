@@ -28,6 +28,7 @@ fn_umi_dedup <- function(bam,
 
   # 1. Checks
   if(length(bam) > 1) stop('fn_umi_dedup processes one file at a time.')
+  if(!file.exists(bam)) warning("BAM file not found: ", bam)
   if(!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
   if(!dir.exists(stats.dir)) dir.create(stats.dir, recursive = TRUE)
 

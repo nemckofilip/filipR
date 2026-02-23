@@ -26,6 +26,8 @@ fn_extract_umi_read2 <- function(fq1,
   if(script.path == "") stop("Perl script 'extract_umi_read2.pl' not found. Please ensure it is in inst/perl/ or provide a path.")
   if(!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
   if(length(fq1) != length(fq2)) stop("fq1 and fq2 lengths differ")
+  missing_fq <- c(fq1, fq2)[!file.exists(c(fq1, fq2))]
+  if(length(missing_fq)) warning("Input files not found:\n  ", paste(missing_fq, collapse = "\n  "))
 
   # Generate Paths
   fq1_out <- file.path(output.dir, paste0(sub("\\.(fq|fastq)(\\.gz)?$", "", basename(fq1)), "_umi.fq.gz"))
@@ -49,4 +51,3 @@ fn_extract_umi_read2 <- function(fq1,
   
   return(dt)
 }
-

@@ -59,6 +59,8 @@ fn_trimGalore <- function(fq1,
     stop("`fq1` and `fq2` must have the same length.")
   if (any(!grepl("\\.(fq|fastq)(\\.gz)?$", c(fq1, fq2))))
     stop("File paths must end with `.fq`, `.fastq`, `.fq.gz`, or `.fastq.gz`")
+  missing_fq <- c(fq1, fq2)[!file.exists(c(fq1, fq2))]
+  if(length(missing_fq)) warning("Input files not found:\n  ", paste(missing_fq, collapse = "\n  "))
 
   # ---- Path handling ----
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)

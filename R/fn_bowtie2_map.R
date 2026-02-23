@@ -18,7 +18,7 @@
 #' @param cores Total number of threads to use. Default 8.
 #' @param mapq Optional minimum MAPQ to filter alignments. Default NULL (no filtering).
 #' @param max.ins Optional maximum insert size for paired-end reads. Default NULL (Bowtie2 default).
-#' @param multimapper.mode How to handle multi-mappers: "best" (default, report best/random), "all" (report all up to -k), or "unique" (only unique mappers).
+#' @param multimapper.mode How to handle multi-mappers: "best" (default, report best/random), "all" (report all alignments), or "unique" (only unique mappers).
 #' @param alignment.stats.output.dir Optional directory for Bowtie2 alignment stats. Defaults to output.dir.
 #'
 #' @return A data.table with columns: fq1_in, fq2_in, bam, stats, fq1_unmapped, fq2_unmapped, cmd, job.name.
@@ -40,6 +40,8 @@ fn_bowtie2_map <- function(fq1,
   # Checks
   if(!is.null(fq2) && length(fq1) != length(fq2)) stop("fq1 and fq2 lengths differ")
   if(!multimapper.mode %in% c("best", "all", "unique")) stop("multimapper.mode must be 'best', 'all', or 'unique'")
+  missing_fq <- c(fq1, fq2)[!file.exists(c(fq1, fq2))]
+  if(length(missing_fq)) warning("Input files not found:\n  ", paste(missing_fq, collapse = "\n  "))
   if(!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
   if(!dir.exists(alignment.stats.output.dir)) dir.create(alignment.stats.output.dir, recursive = TRUE)
 
@@ -89,11 +91,12 @@ fn_bowtie2_map <- function(fq1,
   # Handle multi-mapper mode
   if(multimapper.mode == "best") {
     cmd_align <- paste(cmd_align, "-k 1")
+  } else if(multimapper.mode == "all") {
+    cmd_align <- paste(cmd_align, "-a")
   } else if(multimapper.mode == "unique") {
     # Filter for MAPQ > 0 later (unique mappers have MAPQ > 0 in Bowtie2)
     if(is.null(mapq) || mapq < 1) mapq <- 1
   }
-  # "all" mode: default Bowtie2 behavior, no changes needed
 
   # Pipeline: Align -> (Filter) -> Sort
   cmd <- paste(cmd_align, "2>", shQuote(stats_out))
