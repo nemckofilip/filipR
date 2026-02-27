@@ -17,9 +17,11 @@
 #' @param violin Show violin density polygons behind boxes? Default: FALSE.
 #' @param viocol Violin fill color. Default: transparent.
 #' @param viowex Violin width expansion factor. Default: 0.4.
-#' @param outline Show outliers? Default: FALSE.
-#' @param pts.col Outlier point color. Default: adjustcolor("lightgrey", 0.4).
-#' @param pts.cex Outlier point size. Default: 0.6.
+#' @param outline Show outlier points only? Default: FALSE.
+#' @param show.pts Show all individual data points? Default: FALSE.
+#' @param pts.col Point color (used for both outliers and all-points). Default: "lightgrey".
+#' @param pts.alpha Point alpha transparency. Default: 0.4.
+#' @param pts.cex Point size. Default: 0.6.
 #' @param ... Extra parameters passed to boxplot().
 #'
 #' @examples
@@ -51,7 +53,9 @@ fn_boxplot.default <- function(x, ...,
                                varwidth = FALSE,
                                notch = FALSE,
                                outline = FALSE,
-                               pts.col = adjustcolor("lightgrey", 0.4),
+                               show.pts = FALSE,
+                               pts.col = "lightgrey",
+                               pts.alpha = 0.4,
                                pts.cex = 0.6,
                                names,
                                plot = TRUE,
@@ -127,13 +131,25 @@ fn_boxplot.default <- function(x, ...,
               xaxt = "n", yaxt = "n")
     }
     
-    # Jittered outlier points
-    if(outline && length(.out$out)) {
+    # Jittered points
+    .pts.col <- adjustcolor(pts.col, alpha.f = pts.alpha)
+    xpos <- if(!is.null(at)) at else seq_along(groups)
+    if(show.pts) {
+      set.seed(1)
+      for(j in seq_along(groups)) {
+        vals <- groups[[j]]
+        vals <- vals[!is.na(vals)]
+        if(!length(vals)) next
+        x.pts <- jitter(rep(xpos[j], length(vals)), amount = pars$boxwex / 2)
+        if(horizontal) points(vals, x.pts, col = .pts.col, pch = 19, cex = pts.cex)
+        else points(x.pts, vals, col = .pts.col, pch = 19, cex = pts.cex)
+      }
+    } else if(outline && length(.out$out)) {
       x.out <- if(!is.null(at)) at[.out$group] else .out$group
       set.seed(1)
       x.out <- jitter(x.out, amount = pars$boxwex / 2)
-      if(horizontal) points(.out$out, x.out, col = pts.col, pch = 19, cex = pts.cex)
-      else points(x.out, .out$out, col = pts.col, pch = 19, cex = pts.cex)
+      if(horizontal) points(.out$out, x.out, col = .pts.col, pch = 19, cex = pts.cex)
+      else points(x.out, .out$out, col = .pts.col, pch = 19, cex = pts.cex)
     }
     
     # P-value brackets
@@ -144,7 +160,7 @@ fn_boxplot.default <- function(x, ...,
         stop("compute.pval indices exceed number of groups")
       
       pval <- .fn_compute_pval_brackets(groups, box, compute.pval, pval.FUN,
-                                         outline, at, horizontal, pval.values)
+                                         outline || show.pts, at, horizontal, pval.values)
       if(nrow(pval))
         .fn_draw_pval_brackets(pval, horizontal, pval.cex, pval.stars, pval.values)
     }
