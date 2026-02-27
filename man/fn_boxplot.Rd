@@ -24,7 +24,9 @@ fn_boxplot(x, ...)
   varwidth = FALSE,
   notch = FALSE,
   outline = FALSE,
-  pts.col = adjustcolor("lightgrey", 0.4),
+  show.pts = FALSE,
+  pts.col = "lightgrey",
+  pts.alpha = 0.4,
   pts.cex = 0.6,
   names,
   plot = TRUE,
@@ -71,11 +73,15 @@ Default: function(x, y) wilcox.test(x, y)$p.value.}
 
 \item{srt}{Rotation angle for tilted names. Default: 45.}
 
-\item{outline}{Show outliers? Default: FALSE.}
+\item{outline}{Show outlier points only? Default: FALSE.}
 
-\item{pts.col}{Outlier point color. Default: adjustcolor("lightgrey", 0.4).}
+\item{show.pts}{Show all individual data points? Default: FALSE.}
 
-\item{pts.cex}{Outlier point size. Default: 0.6.}
+\item{pts.col}{Point color (used for both outliers and all-points). Default: "lightgrey".}
+
+\item{pts.alpha}{Point alpha transparency. Default: 0.4.}
+
+\item{pts.cex}{Point size. Default: 0.6.}
 
 \item{violin}{Show violin density polygons behind boxes? Default: FALSE.}
 
