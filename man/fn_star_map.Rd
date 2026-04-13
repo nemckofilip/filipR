@@ -15,6 +15,7 @@ fn_star_map(
   mapq = NULL,
   outFilterMultimapNmax = 10,
   outFilterMismatchNmax = 6,
+  twopassMode = "Basic",
   multimapper.mode = "best",
   alignment.stats.output.dir = "db/alignment_stats/"
 )
@@ -39,6 +40,8 @@ fn_star_map(
 \item{outFilterMultimapNmax}{Maximum number of loci a read can map to. Default 10.}
 
 \item{outFilterMismatchNmax}{Maximum number of mismatches per read. Default 6.}
+
+\item{twopassMode}{STAR 2-pass mode. "Basic" for RNA-seq splice junction improvement, "None" to disable. Default "Basic".}
 
 \item{multimapper.mode}{How to handle multi-mappers: "best" (default, random assignment, output 1), "all" (output all alignments), or "unique" (only unique mappers).}
 

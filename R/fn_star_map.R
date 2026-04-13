@@ -15,6 +15,7 @@
 #' @param mapq Optional minimum MAPQ to filter alignments. Default NULL.
 #' @param outFilterMultimapNmax Maximum number of loci a read can map to. Default 10.
 #' @param outFilterMismatchNmax Maximum number of mismatches per read. Default 6.
+#' @param twopassMode STAR 2-pass mode. "Basic" for RNA-seq splice junction improvement, "None" to disable. Default "Basic".
 #' @param multimapper.mode How to handle multi-mappers: "best" (default, random assignment, output 1), "all" (output all alignments), or "unique" (only unique mappers).
 #' @param alignment.stats.output.dir Optional directory for STAR log files. Default: 'db/alignment_stats/'.
 #'
@@ -30,29 +31,26 @@ fn_star_map <- function(fq1,
                         mapq = NULL,
                         outFilterMultimapNmax = 10,
                         outFilterMismatchNmax = 6,
+                        twopassMode = "Basic",
                         multimapper.mode = "best",
                         alignment.stats.output.dir = "db/alignment_stats/") {
-
   # ---- Input validation ----
   if (length(fq1) != 1) stop("fn_star_map processes one sample at a time.")
   if (!is.null(fq2) && length(fq2) != 1) stop("fn_star_map processes one sample at a time.")
   if (!multimapper.mode %in% c("best", "all", "unique")) stop("multimapper.mode must be 'best', 'all', or 'unique'")
+  if (!twopassMode %in% c("Basic", "None")) stop("twopassMode must be 'Basic' or 'None'")
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
   if (!dir.exists(alignment.stats.output.dir)) dir.create(alignment.stats.output.dir, recursive = TRUE)
-
   is_paired <- !is.null(fq2)
-
   # ---- Thread & memory balancing ----
   sort_cores <- 2
   star_cores <- max(1, cores - sort_cores)
   sort_mem <- "2G"
-
   # ---- Output paths ----
   star_prefix <- file.path(output.dir, paste0(base.name, "_TMP_"))
   star_unsorted_bam <- paste0(star_prefix, "Aligned.out.bam")
   bam_out <- file.path(output.dir, paste0(base.name, "_genome.bam"))
   stats_out <- file.path(alignment.stats.output.dir, paste0(base.name, "_genome.stats"))
-
   # ---- Unmapped read paths ----
   if (is_paired) {
     unmapped_raw_1 <- paste0(star_prefix, "Unmapped.out.mate1")
@@ -64,10 +62,8 @@ fn_star_map <- function(fq1,
     fq1_unmapped <- file.path(output.dir, paste0(base.name, "_genome_unmapped.fq.gz"))
     fq2_unmapped <- NA_character_
   }
-
   # ---- Handle input compression ----
   read_cmd_flag <- if (grepl("\\.gz$", fq1)) "--readFilesCommand zcat" else ""
-
   # ---- Handle multi-mapper mode ----
   if (multimapper.mode == "best") {
     multimapper_flags <- paste(
@@ -80,7 +76,6 @@ fn_star_map <- function(fq1,
   } else {
     multimapper_flags <- ""
   }
-
   # ---- Build STAR command ----
   cmd_align <- paste(
     "STAR",
@@ -93,16 +88,14 @@ fn_star_map <- function(fq1,
     "--outSAMattributes NH HI AS nM NM MD",
     "--outFilterMultimapNmax", outFilterMultimapNmax,
     "--outFilterMismatchNmax", outFilterMismatchNmax,
+    "--twopassMode", twopassMode,
     "--outSAMstrandField intronMotif",
     "--alignEndsType Local",
     multimapper_flags
   )
-
   if (save.unmapped) cmd_align <- paste(cmd_align, "--outReadsUnmapped Fastx")
-
   # ---- Build pipeline ----
   cmd <- paste(cmd_align, "&&")
-
   # Sort BAM
   sort_cmd <- paste("samtools sort -@", sort_cores, "-m", sort_mem, "-o", shQuote(bam_out))
   if (!is.null(mapq)) {
@@ -110,20 +103,18 @@ fn_star_map <- function(fq1,
   } else {
     cmd <- paste(cmd, sort_cmd, shQuote(star_unsorted_bam))
   }
-
+  # Index BAM
+  cmd <- paste(cmd, "&&", "samtools index", shQuote(bam_out))
   # Cleanup unsorted BAM
   cmd <- paste(cmd, "&&", "rm", shQuote(star_unsorted_bam))
-
   # Move log file
   log_default <- paste0(star_prefix, "Log.final.out")
   cmd <- paste(cmd, "&&", "mv", shQuote(log_default), shQuote(stats_out))
-
   # Cleanup STAR temp files
   cmd <- paste(cmd, "&&", "rm", 
                paste0(star_prefix, "Log.out"), 
                paste0(star_prefix, "Log.progress.out"), 
                paste0(star_prefix, "SJ.out.tab"))
-
   # Gzip unmapped reads
   if (save.unmapped) {
     if (is_paired) {
@@ -135,7 +126,6 @@ fn_star_map <- function(fq1,
       cmd <- paste(cmd, "&& rm", shQuote(unmapped_raw))
     }
   }
-
   # ---- Return data.table ----
   data.table::data.table(
     fq1_in = fq1,
