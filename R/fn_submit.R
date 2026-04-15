@@ -73,10 +73,15 @@ fn_submit <- function(cmd,
   )
   
   # Environment setup
-  env_setup <- c("source /opt/conda/etc/profile.d/conda.sh")
-  
-  if(!is.null(conda_env)) {
-    env_setup <- c(env_setup, paste("conda activate", conda_env))
+  # Derive conda base from the env path (e.g. ~/miniconda/envs/r_env ->
+  # ~/miniconda) so the script works on nodes that lack /opt/conda.
+  if (!is.null(conda_env)) {
+    conda_base  <- dirname(dirname(conda_env))
+    conda_sh    <- file.path(conda_base, "etc/profile.d/conda.sh")
+    env_setup   <- c(paste("source", conda_sh),
+                     paste("conda activate", conda_env))
+  } else {
+    env_setup <- character(0)
   }
   
   # Commands
