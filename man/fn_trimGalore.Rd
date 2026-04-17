@@ -17,6 +17,7 @@ fn_trimGalore(
   adapter.r2 = NULL,
   quality = 20,
   min.length = 20,
+  poly.a = FALSE,
   cores = 4
 )
 }
@@ -45,6 +46,9 @@ fn_trimGalore(
 
 \item{min.length}{Minimum read length to keep after trimming. Default 20.}
 
+\item{poly.a}{Logical. Trim poly-A at 3' of R1 and poly-T at 3' of R2 (PE mode). Passes
+\code{--polyA} to Trim Galore. Applies unconditionally to all reads. Default FALSE.}
+
 \item{cores}{Number of threads. Default 4.}
 }
 \value{
@@ -63,7 +67,11 @@ cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", base.name = "sample1")
 cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz", base.name = "sample1")
 
 # Paired-end with 20bp hard trim from 5' of R2 (e.g., RT primer removal)
-cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz", 
+cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz",
                      base.name = "sample1", clip.5p.r2 = 20)
+
+# CORALL library: 9bp R2 5' clip, 12bp R2 3' clip, poly-A/T trimming
+cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz",
+                     base.name = "sample1", clip.5p.r2 = 9, clip.3p.r2 = 12, poly.a = TRUE)
 
 }
