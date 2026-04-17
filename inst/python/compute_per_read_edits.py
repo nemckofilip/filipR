@@ -15,7 +15,7 @@ Output: one row per sample x region x edit_type with:
   mean_edits     mean edits of this type per read (over all reads)
   frac_ge1       fraction of reads with >= 1 edit
   frac_ge3       fraction of reads with >= 3 edits
-  frac_ge10_le100  fraction of reads with >= 10 edits AND read length <= 100 bp
+  frac_hyperedit   fraction of reads with >= 5 edits AND edits/aligned_length >= 0.05
 
 Usage:
   samtools view -F 2308 sample.bam | \
@@ -72,7 +72,7 @@ def main():
     ap.add_argument('--output',  required=True)
     args = ap.parse_args()
 
-    # counts[region][edit_type] = [total_edits, n_reads, ge1, ge3, ge10_le100]
+    # counts[region][edit_type] = [total_edits, n_reads, ge1, ge3, hyperedit]
     counts = {r: {et: [0, 0, 0, 0, 0] for et in EDIT_TYPES}
               for r in ('human', 'ercc')}
 
@@ -94,7 +94,6 @@ def main():
         is_reverse = bool(flag & 0x10)
         is_r1      = bool(flag & 0x40)
         flip       = (is_r1 != is_reverse)   # RF library: flip = - strand gene read
-        read_len   = len(seq)
 
         aln       = aligned_bases(seq, cigar)
         edit_cnts = defaultdict(int)
@@ -113,10 +112,10 @@ def main():
             c[1] += 1            # n_reads
             if n >= 1:  c[2] += 1
             if n >= 3:  c[3] += 1
-            if n >= 10 and read_len <= 100: c[4] += 1
+            if n >= 5 and len(aln) > 0 and n / len(aln) >= 0.05: c[4] += 1
 
     with open(args.output, 'w') as f:
-        f.write('sample\tregion\tedit_type\tn_reads\tmean_edits\tfrac_ge1\tfrac_ge3\tfrac_ge10_le100\n')
+        f.write('sample\tregion\tedit_type\tn_reads\tmean_edits\tfrac_ge1\tfrac_ge3\tfrac_hyperedit\n')
         for region in ('human', 'ercc'):
             for et in EDIT_TYPES:
                 tot, n, ge1, ge3, ge10 = counts[region][et]

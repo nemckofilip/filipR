@@ -8,12 +8,14 @@
 #' @param bam Character. Path to sorted BAM.
 #' @param base.name Base name for output files.
 #' @param output.dir Output directory.
+#' @param min.mq Minimum mapping quality. Default 20 (excludes STAR multi-mappers).
 #'
 #' @return data.table with columns: bam, output, cmd, path.
 #' @export
 fn_per_read_edits <- function(bam,
                               base.name,
-                              output.dir = "db/alignment_stats/per_read_edits/") {
+                              output.dir = "db/alignment_stats/per_read_edits/",
+                              min.mq     = 20) {
 
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
 
@@ -21,7 +23,7 @@ fn_per_read_edits <- function(bam,
   out    <- file.path(output.dir, paste0(base.name, "_per_read_edits.tsv"))
 
   cmd <- paste(
-    "samtools view -F 2308",   # exclude unmapped, secondary, supplementary
+    "samtools view -F 2308 -q", min.mq,   # exclude unmapped, secondary, supplementary; MAPQ filter
     shQuote(bam),
     "| python3", shQuote(script),
     "--sample", shQuote(base.name),

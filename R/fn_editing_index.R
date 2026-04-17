@@ -10,8 +10,8 @@
 #' @param base.name Base name for output files.
 #' @param output.dir Output directory.
 #' @param fasta Path to reference FASTA (must have a .fai index).
-#' @param min.bq Minimum base quality passed to mpileup. Default 0.
-#' @param min.mq Minimum mapping quality passed to mpileup. Default 0.
+#' @param min.bq Minimum base quality passed to mpileup. Default 20.
+#' @param min.mq Minimum mapping quality passed to mpileup. Default 20.
 #' @param max.depth Maximum per-position depth cap. Default 1000000.
 #'
 #' @return data.table with columns: bam, output, cmd, path.
@@ -20,8 +20,8 @@ fn_editing_index <- function(bam,
                              base.name,
                              output.dir = "db/alignment_stats/editing_index/",
                              fasta,
-                             min.bq     = 0,
-                             min.mq     = 0,
+                             min.bq     = 20,
+                             min.mq     = 20,
                              max.depth  = 1000000) {
 
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
