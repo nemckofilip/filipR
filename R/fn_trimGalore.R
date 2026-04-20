@@ -17,8 +17,6 @@
 #' @param adapter.r2 Adapter sequence for R2. Default NULL (auto-detect).
 #' @param quality Quality cutoff for trimming. Default 20.
 #' @param min.length Minimum read length to keep after trimming. Default 20.
-#' @param poly.a Logical. Trim poly-A at 3' of R1 and poly-T at 3' of R2 (PE mode). Passes
-#'   `--polyA` to Trim Galore. Applies unconditionally to all reads. Default FALSE.
 #' @param cores Number of threads. Default 4.
 #'
 #' @return A `data.table` with columns: fq1_in, fq2_in, fq1_out, fq2_out, cmd.
@@ -34,9 +32,9 @@
 #' cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz",
 #'                      base.name = "sample1", clip.5p.r2 = 20)
 #'
-#' # CORALL library: 9bp R2 5' clip, 12bp R2 3' clip, poly-A/T trimming
+#' # CORALL library: 9bp R2 5' clip, 12bp R2 3' clip
 #' cmd <- fn_trimGalore(fq1 = "sample_R1.fq.gz", fq2 = "sample_R2.fq.gz",
-#'                      base.name = "sample1", clip.5p.r2 = 9, clip.3p.r2 = 12, poly.a = TRUE)
+#'                      base.name = "sample1", clip.5p.r2 = 9, clip.3p.r2 = 12)
 #'
 #' @export
 fn_trimGalore <- function(fq1, 
@@ -51,7 +49,6 @@ fn_trimGalore <- function(fq1,
                           adapter.r2 = NULL,
                           quality = 20,
                           min.length = 20,
-                          poly.a = FALSE,
                           cores = 4) {
 
   # ---- Input validation ----
@@ -85,7 +82,6 @@ fn_trimGalore <- function(fq1,
   if (!is.null(clip.3p.r2)) tg_cmd <- paste(tg_cmd, "--three_prime_clip_R2", clip.3p.r2)
   if (!is.null(adapter.r1)) tg_cmd <- paste(tg_cmd, "-a", shQuote(adapter.r1))
   if (!is.null(adapter.r2)) tg_cmd <- paste(tg_cmd, "-a2", shQuote(adapter.r2))
-  if (poly.a) tg_cmd <- paste(tg_cmd, "--polyA")
   
   if (is_paired) {
     tg_cmd <- paste(tg_cmd, "--paired", shQuote(fq1), shQuote(fq2))
