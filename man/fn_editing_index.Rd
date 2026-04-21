@@ -9,6 +9,7 @@ fn_editing_index(
   base.name,
   output.dir = "db/alignment_stats/editing_index/",
   fasta,
+  stranded = TRUE,
   min.bq = 20,
   min.mq = 20,
   max.depth = 1e+06
@@ -22,6 +23,10 @@ fn_editing_index(
 \item{output.dir}{Output directory.}
 
 \item{fasta}{Path to reference FASTA (must have a .fai index).}
+
+\item{stranded}{Logical. If TRUE, process R1 and R2 separately and
+combine (required for forward-stranded PE libraries such as CORALL).
+Default TRUE.}
 
 \item{min.bq}{Minimum base quality passed to mpileup. Default 20.}
 
@@ -38,4 +43,11 @@ All 12 substitution types are computed. Human and ERCC chromosomes
 are tallied separately. The reference FASTA must cover all chromosomes
 in the BAM (use a merged human+ERCC FASTA when the BAM was aligned to
 a combined index).
+}
+\details{
+For forward-stranded paired-end libraries (e.g. CORALL), set
+\code{stranded = TRUE}. R1 reads (sense) are processed with normal
+strand logic; R2 reads (antisense) are processed with swapped strand
+logic so that both contribute correctly to the transcript-level edit.
+The two partial TSVs are combined by summing numerators and denominators.
 }

@@ -8,11 +8,21 @@ Strand-correct for all 12 substitution types. At each pileup position (ref = R):
     A reverse read showing pileup base B means the - strand RNA has comp(B)
     instead of comp(R), so the RNA-level edit is comp(R) -> comp(B).
 
+For forward-stranded paired-end libraries (e.g. CORALL), R2 is antisense and
+must be processed with --swap-strands, which reverses the fwd/rev roles so
+that R2 mismatches are complemented to the transcript-level edit. Run this
+script twice (once for R1, once with --swap-strands for R2) and combine the
+outputs with combine_editing_index.py.
+
 ERCC chromosomes (ERCC-*) are tallied separately from human.
 
-Usage:
-  samtools mpileup -Q 0 -q 0 --no-BAQ -d 1000000 -f ref.fa sample.bam | \
-    python3 compute_editing_index.py --sample ID --output out.tsv
+Usage (single-end or non-stranded):
+  samtools mpileup ... sample.bam | python3 compute_editing_index.py --sample ID --output out.tsv
+
+Usage (forward-stranded PE, e.g. CORALL):
+  samtools mpileup ... -f 64  sample.bam | python3 compute_editing_index.py --sample ID --output r1.tsv
+  samtools mpileup ... -f 128 sample.bam | python3 compute_editing_index.py --swap-strands --sample ID --output r2.tsv
+  python3 combine_editing_index.py r1.tsv r2.tsv --output out.tsv
 """
 
 import sys, re, argparse
@@ -53,8 +63,10 @@ def parse_pileup(s):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--sample',  required=True)
-    ap.add_argument('--output',  required=True)
+    ap.add_argument('--sample',       required=True)
+    ap.add_argument('--output',       required=True)
+    ap.add_argument('--swap-strands', action='store_true',
+                    help='Swap fwd/rev roles (use for R2 in forward-stranded PE libraries)')
     args = ap.parse_args()
 
     fwd_cov = {'human': defaultdict(int), 'ercc': defaultdict(int)}
@@ -77,13 +89,21 @@ def main():
 
         fwd_list, fwd_n, rev_list, rev_n = parse_pileup(pileup)
 
-        fwd_cov[region][ref] += fwd_n
-        for b in fwd_list:
-            fwd_mm[region][ref][b] += 1
-
-        rev_cov[region][cr] += rev_n
-        for b in rev_list:
-            rev_mm[region][cr][_c(b)] += 1
+        if not args.swap_strands:
+            fwd_cov[region][ref] += fwd_n
+            for b in fwd_list:
+                fwd_mm[region][ref][b] += 1
+            rev_cov[region][cr] += rev_n
+            for b in rev_list:
+                rev_mm[region][cr][_c(b)] += 1
+        else:
+            # R2 is antisense: forward-mapped R2 → complement; reverse-mapped R2 → direct
+            rev_cov[region][cr] += fwd_n
+            for b in fwd_list:
+                rev_mm[region][cr][_c(b)] += 1
+            fwd_cov[region][ref] += rev_n
+            for b in rev_list:
+                fwd_mm[region][ref][b] += 1
 
     with open(args.output, 'w') as f:
         f.write('sample\tregion\tedit_type\tnumerator\tdenominator\tediting_index\n')
