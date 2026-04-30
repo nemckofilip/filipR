@@ -31,8 +31,10 @@ suppressPackageStartupMessages({
 })
 
 #==============================================================================
-# READ BAM
+# PARSE BAM IN CHUNKS (avoids loading all reads into memory at once)
 #==============================================================================
+
+CHUNK <- 500000L
 
 flag_filt <- scanBamFlag(
   isUnmappedQuery          = FALSE,
@@ -43,32 +45,6 @@ param <- ScanBamParam(
   flag = flag_filt,
   what = c("rname", "seq", "cigar"),
   tag  = "MD"
-)
-raw <- scanBam(bam, param = param)[[1]]
-
-rname <- as.character(raw$rname)
-seq_v <- as.character(raw$seq)
-cigar <- raw$cigar
-md    <- raw$tag$MD
-
-keep  <- !is.na(md) & nchar(seq_v) > 0L
-rname <- rname[keep]; seq_v <- seq_v[keep]
-cigar <- cigar[keep]; md    <- md[keep]
-
-#==============================================================================
-# SOFT-CLIP OFFSETS (vectorized)
-#==============================================================================
-
-leading_sc <- rep(0L, length(md))
-has_lsc    <- grepl("^\\d+S", cigar, perl = TRUE)
-leading_sc[has_lsc] <- as.integer(
-  sub("^(\\d+)S.*", "\\1", cigar[has_lsc], perl = TRUE)
-)
-
-trailing_sc <- rep(0L, length(md))
-has_tsc     <- grepl("\\d+S$", cigar, perl = TRUE)
-trailing_sc[has_tsc] <- as.integer(
-  sub(".*?(\\d+)S$", "\\1", cigar[has_tsc], perl = TRUE)
 )
 
 #==============================================================================
@@ -99,7 +75,7 @@ count_one <- function(md_i, seq_i, lsc_i, tsc_i) {
   if (!length(let_idx)) return(c(0L, 0L, n_A_aln, n_C_aln))
 
   cum_steps  <- c(0L, cumsum(steps))
-  read_pos   <- cum_steps[let_idx] + lsc_i   # 0-based position in full seq
+  read_pos   <- cum_steps[let_idx] + lsc_i
 
   ref_bases  <- toks[let_idx]
   read_bases <- substr(rep(seq_i, length(read_pos)), read_pos + 1L, read_pos + 1L)
@@ -113,21 +89,56 @@ count_one <- function(md_i, seq_i, lsc_i, tsc_i) {
   c(n_ag, n_ct, n_ref_A, n_ref_C)
 }
 
-res <- mapply(count_one, md, seq_v, leading_sc, trailing_sc, SIMPLIFY = TRUE)
+process_chunk <- function(raw) {
+  rname <- as.character(raw$rname)
+  seq_v <- as.character(raw$seq)
+  cigar <- raw$cigar
+  md    <- raw$tag$MD
+
+  keep  <- !is.na(md) & nchar(seq_v) > 0L
+  if (!any(keep)) return(NULL)
+
+  rname <- rname[keep]; seq_v <- seq_v[keep]
+  cigar <- cigar[keep]; md    <- md[keep]
+
+  lsc <- rep(0L, length(md))
+  has_lsc <- grepl("^\\d+S", cigar, perl = TRUE)
+  lsc[has_lsc] <- as.integer(sub("^(\\d+)S.*", "\\1", cigar[has_lsc], perl = TRUE))
+
+  tsc <- rep(0L, length(md))
+  has_tsc <- grepl("\\d+S$", cigar, perl = TRUE)
+  tsc[has_tsc] <- as.integer(sub(".*?(\\d+)S$", "\\1", cigar[has_tsc], perl = TRUE))
+
+  res    <- mapply(count_one, md, seq_v, lsc, tsc, SIMPLIFY = TRUE)
+  region <- ifelse(startsWith(rname, "ERCC"), "ercc", "human")
+
+  data.table(
+    sample  = sample_name,
+    region  = region,
+    n_AG    = as.integer(res[1L, ]),
+    n_CT    = as.integer(res[2L, ]),
+    n_ref_A = as.integer(res[3L, ]),
+    n_ref_C = as.integer(res[4L, ])
+  )
+}
+
+bf      <- BamFile(bam, yieldSize = CHUNK)
+open(bf)
+chunks  <- list()
+i       <- 0L
+repeat {
+  raw <- scanBam(bf, param = param)[[1]]
+  if (length(raw$rname) == 0L) break
+  i <- i + 1L
+  chunks[[i]] <- process_chunk(raw)
+}
+close(bf)
 
 #==============================================================================
 # AGGREGATE AND WRITE
 #==============================================================================
 
-region <- ifelse(startsWith(rname, "ERCC"), "ercc", "human")
-dt <- data.table(
-  sample  = sample_name,
-  region  = region,
-  n_AG    = as.integer(res[1L, ]),
-  n_CT    = as.integer(res[2L, ]),
-  n_ref_A = as.integer(res[3L, ]),
-  n_ref_C = as.integer(res[4L, ])
-)
+dt     <- rbindlist(chunks)
 result <- dt[, .(n_reads = .N), by = .(sample, region, n_AG, n_CT, n_ref_A, n_ref_C)]
 fwrite(result, output, sep = "\t")
 message("Written: ", output)
