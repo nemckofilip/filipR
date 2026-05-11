@@ -2,7 +2,7 @@
 % Please edit documentation in R/fn_edits_per_read.R
 \name{fn_edits_per_read}
 \alias{fn_edits_per_read}
-\title{Count A>G and C>T substitutions per read from a BAM file}
+\title{Count transcript-level A>G and C>T substitutions per fragment from a BAM file}
 \usage{
 fn_edits_per_read(
   bam,
@@ -22,15 +22,23 @@ Default \code{"db/alignment_stats/edits_per_read/"}.}
 A one-row \code{data.table} with columns: \code{bam}, \code{output}, \code{cmd}, \code{path}.
 }
 \description{
-Parses the MD tag of each mapped primary read and counts A>G and C>T
-substitutions alongside the total reference A and C bases in the aligned
-region. Results are aggregated into a frequency table. Generates a command
-to run as a SLURM job via \code{\link[=fn_submit]{fn_submit()}}.
+For each mapped fragment in a forward-stranded paired-end BAM, parses the
+MD tag of both mates and counts transcript-level A>G and C>T substitutions
+alongside the total reference A and C bases in the aligned region. The
+fragment's transcript strand is derived from BAM flags: a fragment is
+treated as + strand if \verb{is_R1 XOR is_reverse_mapped} is TRUE. On - strand
+fragments, MD T>C is counted as transcript A>G (and G>A as C>T, ref T as
+ref A, ref G as ref C). Mates of a pair are joined by read name and their
+per-mate contributions summed. R1/R2 overlap is NOT deduplicated — overlap
+positions are double-counted in both numerator and denominator, so
+per-fragment rates remain unbiased but per-fragment counts are inflated
+relative to true molecule content. Generates a command to run as a SLURM
+job via \code{\link[=fn_submit]{fn_submit()}}.
 
 Output columns: \code{sample}, \code{region}, \code{n_AG}, \code{n_CT}, \code{n_ref_A}, \code{n_ref_C},
-\code{n_reads}. Per-read editing fractions can be computed as \code{n_AG / n_ref_A}
-and \code{n_CT / n_ref_C}.
+\code{n_reads}. Per-fragment editing fractions can be computed as
+\code{n_AG / n_ref_A} and \code{n_CT / n_ref_C}.
 
-\code{region} is \code{"ercc"} for reads on ERCC spike-in chromosomes
+\code{region} is \code{"ercc"} for fragments on ERCC spike-in chromosomes
 (sequencing-error baseline) and \code{"human"} for all other chromosomes.
 }
