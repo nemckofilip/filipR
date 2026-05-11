@@ -8,6 +8,7 @@ fn_clip_overlap(
   bam,
   base.name,
   output.dir = "db/bam/mapped_STAR_dedup_clipped/",
+  fasta,
   cores = 4
 )
 }
@@ -20,7 +21,11 @@ UMI-deduplicated output).}
 \item{output.dir}{Output directory. Default
 \code{"db/bam/mapped_STAR_dedup_clipped/"}.}
 
-\item{cores}{Threads for \verb{samtools sort} / \verb{samtools index}. Default 4.}
+\item{fasta}{Path to the reference FASTA (must have a \code{.fai} index).
+Used by \verb{samtools calmd} to regenerate MD/NM after clipping.}
+
+\item{cores}{Threads for \verb{samtools sort} / \verb{samtools calmd} /
+\verb{samtools index}. Default 4.}
 }
 \value{
 A one-row \code{data.table} with columns:
@@ -32,10 +37,18 @@ genomic position is covered by at most one mate. The lower-quality mate
 is clipped (bamUtil default). The original CIGAR is preserved in the
 \code{OC} tag.
 
-The BAM is first name-sorted (so mates of a pair are adjacent), run
-through \verb{bam clipOverlap --readName} (robust against large RNA-seq
-insert sizes), then re-sorted by coordinate and indexed. Intermediate
-files live in a per-job temp directory inside \code{output.dir} and are
-removed at the end. Stats from clipOverlap (overlap counts, clipped
-bases) are captured to a \code{.stats} file.
+Pipeline:
+\enumerate{
+\item \verb{samtools sort -n} — name-sort so mates are adjacent.
+\item \verb{bam clipOverlap --readName} — robust against large RNA-seq inserts.
+\item \verb{samtools sort} — coordinate-sort the clipped BAM.
+\item \verb{samtools calmd -b} — regenerate MD and NM tags so they match the new
+CIGAR (clipOverlap does NOT update these, which would otherwise break
+any downstream tool that reads MD).
+\item \verb{samtools index}.
+}
+
+Intermediate files live in a per-job temp directory inside \code{output.dir}
+and are removed at the end. Stats from clipOverlap (overlap counts,
+clipped bases) are captured to a \code{.stats} file.
 }
