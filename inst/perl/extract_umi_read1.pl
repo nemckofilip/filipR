@@ -29,25 +29,37 @@ GetOptions(
     "help|h"     => \$help,
 ) or die "Error parsing options. Use --help.\n";
 
-if ($help || !$r1_in || !$r2_in || !$r1_out || !$r2_out) {
+if ($help || !$r1_in || !$r1_out) {
     print <<"USAGE";
 Usage:
+  # Paired-end
   perl extract_umi_read1.pl --r1 <R1.fq.gz> --r2 <R2.fq.gz> \\
        --out1 <out1.fq.gz> --out2 <out2.fq.gz> \\
        [--umi-len 8] [--threads 4]
 
+  # Single-end (R1 only)
+  perl extract_umi_read1.pl --r1 <R1.fq.gz> --out1 <out1.fq.gz> \\
+       [--umi-len 8] [--threads 4]
+
 Description:
-  Extracts first N bases from R1 (UMI), appends them to both R1 & R2
-  read headers, trims R1 by N bases, and outputs gzipped FASTQ.
+  Extracts first N bases from R1 (UMI), appends them to the R1 (and, in
+  paired-end mode, R2) read headers, trims R1 by N bases, and outputs
+  gzipped FASTQ.
 
 Options:
-  --r1, --r2       Input FASTQ files (gzipped)
-  --out1, --out2   Output FASTQ files (gzipped)
+  --r1, --r2       Input FASTQ files (gzipped). --r2 is optional (single-end if omitted).
+  --out1, --out2   Output FASTQ files (gzipped). --out2 required only in paired-end mode.
   --umi-len        Number of bases to extract from R1 (default 8)
   --threads        Threads for pigz/gzip compression (default SLURM value or 4)
   --help           Show this help message
 USAGE
     exit 1;
+}
+
+# Paired-end if R2 provided; require both --r2 and --out2 together
+my $paired = (defined $r2_in || defined $r2_out) ? 1 : 0;
+if ($paired && (!defined $r2_in || !defined $r2_out)) {
+    die "For paired-end mode, provide both --r2 and --out2.\n";
 }
 
 # -----------------------------------------------------------
@@ -63,10 +75,13 @@ warn "Note: pigz not found; using standard gzip (slower).\n"
 # Open input files
 # -----------------------------------------------------------
 open(my $IN1, "$zcat_cmd '$r1_in' |") or die "Cannot open R1: $r1_in\n";
-open(my $IN2, "$zcat_cmd '$r2_in' |") or die "Cannot open R2: $r2_in\n";
-
 open(my $OUT1, "| $gzip_cmd > '$r1_out'") or die "Cannot write R1 output: $r1_out\n";
-open(my $OUT2, "| $gzip_cmd > '$r2_out'") or die "Cannot write R2 output: $r2_out\n";
+
+my ($IN2, $OUT2);
+if ($paired) {
+    open($IN2, "$zcat_cmd '$r2_in' |") or die "Cannot open R2: $r2_in\n";
+    open($OUT2, "| $gzip_cmd > '$r2_out'") or die "Cannot write R2 output: $r2_out\n";
+}
 
 # -----------------------------------------------------------
 # Processing loop
@@ -78,13 +93,16 @@ while (my $h1 = <$IN1>) {
     my $p1 = <$IN1>;
     my $q1 = <$IN1>;
 
-    my $h2 = <$IN2>;
-    my $s2 = <$IN2>;
-    my $p2 = <$IN2>;
-    my $q2 = <$IN2>;
+    my ($h2, $s2, $p2, $q2);
+    if ($paired) {
+        $h2 = <$IN2>;
+        $s2 = <$IN2>;
+        $p2 = <$IN2>;
+        $q2 = <$IN2>;
 
-    die "Error: R2 ended before R1 at read $count\n"
-        unless defined $h2;
+        die "Error: R2 ended before R1 at read $count\n"
+            unless defined $h2;
+    }
 
     chomp($s1);
     chomp($q1);
@@ -101,25 +119,28 @@ while (my $h1 = <$IN1>) {
     my $s1_trim = substr($s1, $umi_len);
     my $q1_trim = substr($q1, $umi_len);
 
-    # Fix headers
+    # Fix header (R1) and write trimmed R1
     chomp($h1);
-    chomp($h2);
     my ($id1, $desc1) = split(/\s+/, $h1, 2);
-    my ($id2, $desc2) = split(/\s+/, $h2, 2);
-
     my $new_h1 = $id1 . "_" . $umi . (defined $desc1 ? " $desc1" : "");
-    my $new_h2 = $id2 . "_" . $umi . (defined $desc2 ? " $desc2" : "");
-
-    # Write outputs (R1 trimmed, R2 unchanged)
     print $OUT1 "$new_h1\n$s1_trim\n$p1$q1_trim\n";
-    print $OUT2 "$new_h2\n$s2$p2$q2";
+
+    # Write R2 unchanged, with UMI appended to header
+    if ($paired) {
+        chomp($h2);
+        my ($id2, $desc2) = split(/\s+/, $h2, 2);
+        my $new_h2 = $id2 . "_" . $umi . (defined $desc2 ? " $desc2" : "");
+        print $OUT2 "$new_h2\n$s2$p2$q2";
+    }
 
     $count++;
 }
 
 close $IN1;
-close $IN2;
 close $OUT1;
-close $OUT2;
+if ($paired) {
+    close $IN2;
+    close $OUT2;
+}
 
-print "Done. Processed $count read pairs.\n";
+print "Done. Processed $count " . ($paired ? "read pairs" : "reads") . ".\n";

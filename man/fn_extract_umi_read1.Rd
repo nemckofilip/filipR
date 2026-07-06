@@ -6,7 +6,7 @@
 \usage{
 fn_extract_umi_read1(
   fq1,
-  fq2,
+  fq2 = NULL,
   base.name,
   output.dir = "db/fq_trimmed_umi/",
   umi.len = 8,
@@ -17,7 +17,7 @@ fn_extract_umi_read1(
 \arguments{
 \item{fq1}{Character string. Path to R1 FASTQ file.}
 
-\item{fq2}{Character string. Path to R2 FASTQ file.}
+\item{fq2}{Character string. Path to R2 FASTQ file. Default NULL (single-end, R1 only).}
 
 \item{base.name}{Base name for output files.}
 
@@ -35,6 +35,6 @@ A data.table with columns: fq1_in, fq2_in, fq1_out, fq2_out, cmd, path.
 }
 \description{
 Uses a custom Perl script to extract the first N bases of Read 1 (UMI)
-and append it to the read ID of both Read 1 and Read 2.
+and append it to the read ID of Read 1 (and Read 2 in paired-end mode).
 Read 1 is then trimmed by N bases.
 }
