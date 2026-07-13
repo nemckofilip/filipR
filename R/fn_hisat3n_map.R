@@ -35,6 +35,15 @@
 #' @param rna.strandness Character or \code{NULL}. Passed to
 #'   \code{--rna-strandness}: \code{"RF"}, \code{"FR"}, or \code{NULL} for
 #'   unstranded. Default: \code{NULL}.
+#' @param concordant.only Logical. Paired-end only. \code{TRUE} (default) passes
+#'   \code{--no-mixed --no-discordant}, keeping only concordant pairs. Set
+#'   \code{FALSE} to allow a cleanly-mapping mate to rescue a pair whose other
+#'   mate is edit-rich and fails to align (recovers more reads in heavily edited
+#'   samples). Default: \code{TRUE}.
+#' @param score.min Character or \code{NULL}. Passed verbatim to
+#'   \code{--score-min} to relax the minimum alignment score, e.g.
+#'   \code{"L,0,-0.4"}. \code{NULL} keeps the HISAT2 default. Default:
+#'   \code{NULL}.
 #' @param alignment.stats.output.dir Character. Directory for alignment summary
 #'   log. Default: \code{"db/alignment_stats/"}.
 #'
@@ -53,6 +62,8 @@ fn_hisat3n_map <- function(fq1,
                             mapq                       = NULL,
                             multimapper.mode           = "best",
                             rna.strandness             = NULL,
+                            concordant.only            = TRUE,
+                            score.min                  = NULL,
                             alignment.stats.output.dir = "db/alignment_stats/") {
 
   # ---- Input validation ----
@@ -111,11 +122,21 @@ fn_hisat3n_map <- function(fq1,
   } else {
     paste("-U", shQuote(fq1))
   }
-  pe_flags <- if (is_paired) "--no-mixed --no-discordant" else ""
+  # concordant.only = TRUE reproduces the original behaviour (--no-mixed
+  # --no-discordant): only concordant pairs are kept. Set FALSE to let a
+  # cleanly-mapping mate rescue a pair whose other mate is edit-rich and
+  # fails to align (important for heavily edited samples).
+  pe_flags <- if (is_paired && isTRUE(concordant.only))
+    "--no-mixed --no-discordant" else ""
 
   # ---- Strandedness ----
   strand_flag <- if (!is.null(rna.strandness))
     paste("--rna-strandness", rna.strandness) else ""
+
+  # ---- Optional alignment-score relaxation ----
+  # score.min is passed to --score-min (e.g. "L,0,-0.4"); NULL keeps the default.
+  score_flag <- if (!is.null(score.min))
+    paste("--score-min", shQuote(score.min)) else ""
 
   # ---- Build HISAT-3N command ----
   cmd_align <- paste(
@@ -127,6 +148,7 @@ fn_hisat3n_map <- function(fq1,
     pe_flags,
     multimapper_flag,
     strand_flag,
+    score_flag,
     unmapped_flag,
     "--summary-file", shQuote(stats_out)
   )

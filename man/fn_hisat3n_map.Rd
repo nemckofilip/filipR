@@ -16,6 +16,8 @@ fn_hisat3n_map(
   mapq = NULL,
   multimapper.mode = "best",
   rna.strandness = NULL,
+  concordant.only = TRUE,
+  score.min = NULL,
   alignment.stats.output.dir = "db/alignment_stats/"
 )
 }
@@ -55,6 +57,17 @@ Default: \code{"best"}.}
 \item{rna.strandness}{Character or \code{NULL}. Passed to
 \code{--rna-strandness}: \code{"RF"}, \code{"FR"}, or \code{NULL} for
 unstranded. Default: \code{NULL}.}
+
+\item{concordant.only}{Logical. Paired-end only. \code{TRUE} (default) passes
+\code{--no-mixed --no-discordant}, keeping only concordant pairs. Set
+\code{FALSE} to allow a cleanly-mapping mate to rescue a pair whose other
+mate is edit-rich and fails to align (recovers more reads in heavily edited
+samples). Default: \code{TRUE}.}
+
+\item{score.min}{Character or \code{NULL}. Passed verbatim to
+\code{--score-min} to relax the minimum alignment score, e.g.
+\code{"L,0,-0.4"}. \code{NULL} keeps the HISAT2 default. Default:
+\code{NULL}.}
 
 \item{alignment.stats.output.dir}{Character. Directory for alignment summary
 log. Default: \code{"db/alignment_stats/"}.}
