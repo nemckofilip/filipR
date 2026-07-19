@@ -2,7 +2,8 @@
 # Called internally by fn_deseq2(). Do not run directly.
 # Args: <count.files> <sample.names> <conditions> <ctl.conditions>
 #       <padj.cutoff> <log2FC.cutoff> <dds.folder> <FC.folder>
-#       <MA.folder> <output.prefix> <norm.counts|NULL>
+#       <MA.folder> <output.prefix> <spikein.count.files|NULL>
+#       <keep.genes.file|NULL>
 
 suppressMessages(library(data.table))
 suppressMessages(library(DESeq2))
@@ -20,16 +21,32 @@ dds.folder     <- args[7]
 FC.folder      <- args[8]
 MA.folder      <- args[9]
 output.prefix  <- args[10]
-norm.counts    <- if (args[11] == "NULL") NULL else as.numeric(unlist(tstrsplit(args[11], ",")))
+spikein.files  <- if (args[11] == "NULL") NULL else unlist(tstrsplit(args[11], ","))
+keep.genes.file <- if (args[12] == "NULL") NULL else args[12]
 
 if (!any(!conditions %in% controls))
   stop("No non-control conditions found to compare against controls.")
 
 #==============================================================================
 # LOAD AND MERGE COUNT FILES
+# When spike-in count files are supplied (e.g. per-ERCC counts), their rows are
+# appended per sample so DESeq2 can use them as controlGenes for size factors.
 #==============================================================================
 
 dat <- lapply(counts, fread)
+# Restrict gene rows to a functional keep-list (e.g. drop pseudogenes) before
+# testing; spike-in rows are appended afterwards so they are always retained.
+if (!is.null(keep.genes.file)) {
+  keep <- fread(keep.genes.file, header = FALSE)$V1
+  dat  <- lapply(dat, function(d) d[gene_id %in% keep])
+}
+if (!is.null(spikein.files)) {
+  spike     <- lapply(spikein.files, fread)
+  spike.ids <- unique(unlist(lapply(spike, function(x) x$gene_id)))
+  dat       <- Map(rbind, dat, spike)
+} else {
+  spike.ids <- character(0)
+}
 names(dat) <- sample.names
 dat <- rbindlist(dat, idcol = "sample")
 dat[, sample := factor(sample, unique(sample))]
@@ -39,15 +56,23 @@ DF <- data.frame(DF[, -1], row.names = DF$gene_id)
 
 DF <- DF[rowSums(DF >= 3) >= 2, ]
 
+# Spike-in rows surviving the detection filter are the control-gene set.
+spike.idx <- which(rownames(DF) %in% spike.ids)
+if (!is.null(spikein.files) && length(spike.idx) == 0)
+  stop("Spike-in count files supplied but no spike-in rows survived filtering.")
+
 #==============================================================================
 # DESeq2
+# With spike-ins, size factors come from DESeq2's median-of-ratios estimator
+# restricted to the spike-in control genes; otherwise the default all-gene
+# estimation is used.
 #==============================================================================
 
 sampleTable <- data.frame(condition = conditions, row.names = make.names(sample.names))
 dds <- DESeqDataSetFromMatrix(countData = DF, colData = sampleTable, design = ~ condition)
 
-if (!is.null(norm.counts))
-  sizeFactors(dds) <- norm.counts / min(norm.counts)
+if (length(spike.idx) > 0)
+  dds <- estimateSizeFactors(dds, controlGenes = spike.idx)
 
 dds <- DESeq(dds)
 
@@ -72,6 +97,7 @@ for (ctl in unique(controls)) {
 
     res <- as.data.table(as.data.frame(results(dds, contrast = c("condition", cdition, ctl))),
                          keep.rownames = "gene_id")
+    res <- res[!gene_id %in% spike.ids]
     res[, diff := fcase(padj < padj.cutoff & log2FoldChange >   log2FC.cutoff,  "Up-regulated",
                         padj < padj.cutoff & log2FoldChange < (-log2FC.cutoff), "Down-regulated",
                         default = "Unaffected")]

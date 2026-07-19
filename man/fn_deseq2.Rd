@@ -10,7 +10,8 @@ fn_deseq2(
   conditions,
   ctl.conditions,
   output.prefix,
-  norm.counts = NULL,
+  spikein.count.files = NULL,
+  keep.genes.file = NULL,
   padj.cutoff = 0.05,
   log2FC.cutoff = log2(1.5),
   dds.output.folder = "db/dds/",
@@ -34,9 +35,16 @@ pairwise comparisons of non-control vs each control are computed.}
 
 \item{output.prefix}{Prefix for all output file names.}
 
-\item{norm.counts}{Optional numeric vector of spike-in totals (e.g. ERCC
-read counts) for manual size factor normalization. Same length as
-\code{count.files}. Default \code{NULL} uses DESeq2's default estimation.}
+\item{spikein.count.files}{Optional character vector of paths to per-spike-in
+count files (e.g. per-ERCC counts, same 3-column format as \code{count.files}),
+one per sample. When supplied these rows are appended to the count matrix
+and used as DESeq2 \code{controlGenes} for size-factor estimation. Same length
+as \code{count.files}. Default \code{NULL} uses DESeq2's default all-gene estimation.}
+
+\item{keep.genes.file}{Optional path to a file with one gene_id per line.
+When supplied, gene rows are restricted to these IDs before testing (e.g.
+to drop pseudogenes), improving multiple-testing correction. Spike-in rows
+are always retained. Default \code{NULL} keeps all genes.}
 
 \item{padj.cutoff}{Adjusted p-value cutoff for the \code{significant} flag
 column in the output table. Default \code{0.05}.}
@@ -59,7 +67,9 @@ A one-row \code{data.table} with columns \code{dds}, \code{FC.table}, \code{MA.p
 }
 \description{
 Generates a shell command to run DESeq2 via \code{\link[=fn_submit]{fn_submit()}}. Compares all
-non-control conditions against \code{ctl.condition}. Optionally uses spike-in
-counts (e.g. ERCC) to set size factors instead of DESeq2's default
-library-size estimation.
+non-control conditions against \code{ctl.condition}. Optionally appends spike-in
+count rows (e.g. ERCC) and uses them as DESeq2 \code{controlGenes}, so size
+factors come from DESeq2's own median-of-ratios estimator restricted to the
+spike-ins instead of the default all-gene estimation. Spike-in rows are
+dropped from the reported results.
 }

@@ -16,6 +16,9 @@
 #' @param base.name Base name for output files.
 #' @param output.dir Output directory.
 #' @param fasta Path to reference FASTA (must have a .fai index).
+#' @param region.bed Optional path to a BED restricting the pileup to those
+#'   regions (mpileup `-l`), e.g. functional gene bodies so the index excludes
+#'   intergenic/pseudogene positions. Default `NULL` uses the whole BAM.
 #' @param stranded Logical. If TRUE, process R1 and R2 separately and
 #'   combine (required for forward-stranded PE libraries such as CORALL).
 #'   Default TRUE.
@@ -29,12 +32,15 @@ fn_editing_index <- function(bam,
                              base.name,
                              output.dir = "db/alignment_stats/editing_index/",
                              fasta,
+                             region.bed = NULL,
                              stranded   = TRUE,
                              min.bq     = 20,
                              min.mq     = 20,
                              max.depth  = 1000000) {
 
   if (!dir.exists(output.dir)) dir.create(output.dir, recursive = TRUE)
+  if (!is.null(region.bed) && !file.exists(region.bed))
+    stop("region.bed does not exist: ", region.bed)
 
   script_ei   <- system.file("python", "compute_editing_index.py",
                              package = "filipR")
@@ -48,6 +54,7 @@ fn_editing_index <- function(bam,
     "-q", min.mq,
     "--no-BAQ",
     "-d", max.depth,
+    if (!is.null(region.bed)) paste("-l", shQuote(region.bed)) else "",
     "-f", shQuote(fasta)
   )
 

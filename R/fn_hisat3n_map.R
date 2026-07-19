@@ -154,19 +154,27 @@ fn_hisat3n_map <- function(fq1,
   )
 
   # Pipe into samtools sort
+  sort_tmp <- paste0(bam_out, "_tmp")
   sort_cmd <- paste(
     "samtools sort",
     "-@", sort_cores,
     "-m 2G",
-    "-T", shQuote(paste0(bam_out, "_tmp")),
+    "-T", shQuote(sort_tmp),
     "-o", shQuote(bam_out),
     "-"
   )
 
+  # samtools sort refuses to reuse existing temp shards ("File exists"). On a
+  # preemptible partition a job killed mid-sort leaves stale <prefix>.NNNN.bam
+  # shards behind, so the requeued run fails. Clear them before sorting so
+  # restarts are collision-safe.
+  cleanup_tmp <- paste0("rm -f ", shQuote(sort_tmp), "*.bam")
+
   if (!is.null(mapq)) {
-    cmd <- paste(cmd_align, "| samtools view -b -q", mapq, "|", sort_cmd)
+    cmd <- paste(cleanup_tmp, "&&", cmd_align,
+                 "| samtools view -b -q", mapq, "|", sort_cmd)
   } else {
-    cmd <- paste(cmd_align, "|", sort_cmd)
+    cmd <- paste(cleanup_tmp, "&&", cmd_align, "|", sort_cmd)
   }
 
   cmd <- paste(cmd, "&&", "samtools index", shQuote(bam_out))
