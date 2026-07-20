@@ -88,8 +88,13 @@ fn_submit <- function(cmd,
   # We write all commands to the script. They will run sequentially.
   body <- cmd$cmd
   
+  # pipefail: a killed/failed command in a pipe (e.g. preempted `mpileup | py`)
+  # makes the whole pipe fail instead of exiting 0 on the downstream process,
+  # so `&&` chains stop and no truncated output file is left behind.
+  pipe_safe <- "set -o pipefail"
+
   # Write the full script
-  writeLines(c(header, "", env_setup, "", body), script_path)
+  writeLines(c(header, "", pipe_safe, "", env_setup, "", body), script_path)
   
   if(execute) {
     # Submit using sbatch

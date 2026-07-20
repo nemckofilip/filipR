@@ -9,7 +9,6 @@ fn_editing_index(
   base.name,
   output.dir = "db/alignment_stats/editing_index/",
   fasta,
-  region.bed = NULL,
   stranded = TRUE,
   min.bq = 20,
   min.mq = 20,
@@ -24,10 +23,6 @@ fn_editing_index(
 \item{output.dir}{Output directory.}
 
 \item{fasta}{Path to reference FASTA (must have a .fai index).}
-
-\item{region.bed}{Optional path to a BED restricting the pileup to those
-regions (mpileup \code{-l}), e.g. functional gene bodies so the index excludes
-intergenic/pseudogene positions. Default \code{NULL} uses the whole BAM.}
 
 \item{stranded}{Logical. If TRUE, process R1 and R2 separately and
 combine (required for forward-stranded PE libraries such as CORALL).
