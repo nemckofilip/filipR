@@ -17,6 +17,7 @@ fn_bowtie2_map(
   mapq = NULL,
   max.ins = NULL,
   multimapper.mode = "best",
+  concordant.only = FALSE,
   alignment.stats.output.dir = output.dir
 )
 }
@@ -44,6 +45,12 @@ fn_bowtie2_map(
 \item{max.ins}{Optional maximum insert size for paired-end reads. Default NULL (Bowtie2 default).}
 
 \item{multimapper.mode}{How to handle multi-mappers: "best" (default, report best/random), "all" (report all up to -k), or "unique" (only unique mappers).}
+
+\item{concordant.only}{Logical. Paired-end only. If TRUE, passes
+\code{--no-mixed --no-discordant} so only concordant pairs are reported and
+orphan alignments are never produced. Default FALSE (Bowtie2 default
+behaviour). Set TRUE for amplicon libraries where a single mate carries too
+little sequence to assign a construct on its own.}
 
 \item{alignment.stats.output.dir}{Optional directory for Bowtie2 alignment stats. Defaults to output.dir.}
 }

@@ -18,6 +18,11 @@
 #' @param mapq Optional minimum MAPQ to filter alignments. Default NULL (no filtering).
 #' @param max.ins Optional maximum insert size for paired-end reads. Default NULL (Bowtie2 default).
 #' @param multimapper.mode How to handle multi-mappers: "best" (default, report best/random), "all" (report all up to -k), or "unique" (only unique mappers).
+#' @param concordant.only Logical. Paired-end only. If TRUE, passes
+#'   \code{--no-mixed --no-discordant} so only concordant pairs are reported and
+#'   orphan alignments are never produced. Default FALSE (Bowtie2 default
+#'   behaviour). Set TRUE for amplicon libraries where a single mate carries too
+#'   little sequence to assign a construct on its own.
 #' @param alignment.stats.output.dir Optional directory for Bowtie2 alignment stats. Defaults to output.dir.
 #'
 #' @return A data.table with columns: fq1_in, fq2_in, bam, stats, fq1_unmapped, fq2_unmapped, cmd.
@@ -34,6 +39,7 @@ fn_bowtie2_map <- function(fq1,
                            mapq = NULL,
                            max.ins = NULL,
                            multimapper.mode = "best",
+                           concordant.only = FALSE,
                            alignment.stats.output.dir = output.dir) {
 
   # ---- Input validation ----
@@ -74,6 +80,7 @@ fn_bowtie2_map <- function(fq1,
       "--no-unal"
     )
     if (!is.null(max.ins)) cmd_align <- paste(cmd_align, "-X", max.ins)
+    if (isTRUE(concordant.only)) cmd_align <- paste(cmd_align, "--no-mixed --no-discordant")
     if (save.unmapped) cmd_align <- paste(cmd_align, "--un-conc-gz", shQuote(unmapped_base))
   } else {
     cmd_align <- paste(
