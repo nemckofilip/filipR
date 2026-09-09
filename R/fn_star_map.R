@@ -108,10 +108,16 @@ fn_star_map <- function(fq1,
   if (save.unmapped) cmd_align <- paste(cmd_align, "--outReadsUnmapped Fastx")
 
   # ---- Build pipeline ----
-  cmd <- paste(cmd_align, "&&")
+  # Clear temps from an earlier attempt: samtools sort aborts on "File exists"
+  # if a preempted job left <bam>.tmp.NNNN.bam behind.
+  cmd <- paste("rm -f", paste0(shQuote(bam_out), ".tmp.*.bam"), "&&",
+               cmd_align, "&&")
 
-  # Sort BAM
-  sort_cmd <- paste("samtools sort -@", sort_cores, "-m", sort_mem, "-o", shQuote(bam_out))
+  # Sort BAM. -T keeps temps on node-local scratch so a preempted job discards
+  # them with its allocation instead of blocking the retry.
+  sort_tmp <- paste0("${TMPDIR:-/tmp}/", base.name, ".sort.$$")
+  sort_cmd <- paste("samtools sort -@", sort_cores, "-m", sort_mem,
+                    "-T", sort_tmp, "-o", shQuote(bam_out))
 
   if (!is.null(mapq)) {
     cmd <- paste(cmd, "samtools view -b -q", mapq, shQuote(star_unsorted_bam), "|", sort_cmd, "-")

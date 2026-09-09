@@ -103,11 +103,18 @@ fn_bowtie2_map <- function(fq1,
   }
 
   # ---- Pipeline: Align -> (Filter) -> Sort ----
-  cmd <- paste(cmd_align, "2>", shQuote(stats_out))
+  # samtools sort defaults its temp prefix to the output BAM path, so a job that
+  # dies mid-sort leaves <bam>.tmp.NNNN.bam behind and the retry aborts with
+  # "File exists". -T puts them in node-local scratch, where a preempted job
+  # discards them with its allocation; the rm clears any left by an older run.
+  sort_tmp <- paste0("${TMPDIR:-/tmp}/", base.name, ".sort.$$")
+  cmd <- paste("rm -f", paste0(shQuote(bam_out), ".tmp.*.bam"), "&&", cmd_align,
+               "2>", shQuote(stats_out))
   if (!is.null(mapq)) {
     cmd <- paste(cmd, "| samtools view -b -q", mapq)
   }
-  cmd <- paste(cmd, "| samtools sort -@", sort_cores, "-o", shQuote(bam_out), "-")
+  cmd <- paste(cmd, "| samtools sort -@", sort_cores, "-T", sort_tmp,
+               "-o", shQuote(bam_out), "-")
 
   # ---- Return data.table ----
   data.table::data.table(
