@@ -8,7 +8,12 @@
 #' @param compute.pval List of length-2 vectors with group indices to compare.
 #'   E.g., list(c(1,2), c(2,3)) compares groups 1v2 and 2v3.
 #' @param pval.FUN Function to compute p-value. Takes two numeric vectors, returns p-value.
-#'   Default: function(x, y) wilcox.test(x, y)$p.value.
+#'   Default: a Wilcoxon test using `pval.alternative`.
+#' @param pval.alternative Alternative hypothesis for the default `pval.FUN`,
+#'   passed to [stats::wilcox.test()]. `"two.sided"` (default) asks only
+#'   whether the two groups differ; `"greater"` asks whether the FIRST group of
+#'   each `compute.pval` pair is higher, `"less"` whether it is lower. Ignored
+#'   when a custom `pval.FUN` is supplied.
 #' @param pval.cex Cex for p-value text. Default: 0.7.
 #' @param pval.stars Show significance stars? Default: TRUE.
 #' @param pval.values Show numeric p-values? Default: FALSE.
@@ -42,7 +47,9 @@ fn_boxplot <- function(x, ...) UseMethod("fn_boxplot")
 #' @export
 fn_boxplot.default <- function(x, ...,
                                compute.pval = NULL,
-                               pval.FUN = function(x, y) wilcox.test(x, y)$p.value,
+                               pval.FUN = function(x, y)
+                                 wilcox.test(x, y, alternative = pval.alternative)$p.value,
+                               pval.alternative = "two.sided",
                                pval.cex = 0.7,
                                pval.stars = TRUE,
                                pval.values = FALSE,
@@ -295,12 +302,14 @@ fn_boxplot.formula <- function(formula, data = NULL, ..., subset, na.action = NU
       
       lab <- if(pval.values) formatC(p, digits = 1, format = "e") else ""
       
+      # "N.S" is a star-style label, so it follows pval.stars like the
+      # asterisks do - with pval.stars = FALSE only the number is shown
       label <- if(pval.values) {
         if(p < 2.2e-308) bquote(italic(P) < "2.2e-308" * .(star))
-        else if(p > 0.05) bquote(italic(P) == .(lab)^"N.S")
+        else if(p > 0.05 && pval.stars) bquote(italic(P) == .(lab)^"N.S")
         else bquote(italic(P) == .(lab) * .(star))
       } else {
-        if(p > 0.05) bquote(.(lab)^"N.S")
+        if(p > 0.05 && pval.stars) bquote(.(lab)^"N.S")
         else bquote(.(lab) * .(star))
       }
       

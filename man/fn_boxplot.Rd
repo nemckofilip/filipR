@@ -13,7 +13,8 @@ fn_boxplot(x, ...)
   x,
   ...,
   compute.pval = NULL,
-  pval.FUN = function(x, y) wilcox.test(x, y)$p.value,
+  pval.FUN = function(x, y) wilcox.test(x, y, alternative = pval.alternative)$p.value,
+  pval.alternative = "two.sided",
   pval.cex = 0.7,
   pval.stars = TRUE,
   pval.values = FALSE,
@@ -61,7 +62,13 @@ fn_boxplot(x, ...)
 E.g., list(c(1,2), c(2,3)) compares groups 1v2 and 2v3.}
 
 \item{pval.FUN}{Function to compute p-value. Takes two numeric vectors, returns p-value.
-Default: function(x, y) wilcox.test(x, y)$p.value.}
+Default: a Wilcoxon test using \code{pval.alternative}.}
+
+\item{pval.alternative}{Alternative hypothesis for the default \code{pval.FUN},
+passed to \code{\link[stats:wilcox.test]{stats::wilcox.test()}}. \code{"two.sided"} (default) asks only
+whether the two groups differ; \code{"greater"} asks whether the FIRST group of
+each \code{compute.pval} pair is higher, \code{"less"} whether it is lower. Ignored
+when a custom \code{pval.FUN} is supplied.}
 
 \item{pval.cex}{Cex for p-value text. Default: 0.7.}
 
