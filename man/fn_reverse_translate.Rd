@@ -14,6 +14,11 @@ fn_reverse_translate(
   gc.max = 0.65,
   gc.window = 50,
   homopolymer = 6,
+  max.donor = NULL,
+  max.acceptor = NULL,
+  splice.max = NULL,
+  splice.step = 0.5,
+  splice.fallback = FALSE,
   stop.codon = "TAA",
   prefix = "",
   suffix = "",
@@ -38,6 +43,19 @@ sites must not occur. Default none.}
 
 \item{homopolymer}{Runs of this many identical bases or more are avoided. Default 6.}
 
+\item{max.donor, max.acceptor}{MaxEntScan scores that donor (5' splice site) and acceptor (3'
+splice site) windows inside the coding sequence and stop codon must stay below. \code{NULL} (default)
+does not restrict. Limits below about 7 cannot be met by every protein.}
+
+\item{splice.max}{Highest limit to try. A protein that cannot meet \code{max.donor}/\code{max.acceptor} together
+with the other constraints is designed again with both limits raised by \code{splice.step}, up to
+\code{splice.max}. Default \code{NULL} (no raising).}
+
+\item{splice.step}{Increase of the limits per attempt. Default 0.5.}
+
+\item{splice.fallback}{Logical. A protein that meets no limit up to \code{splice.max} is designed without
+splice limits (all other constraints kept). Default FALSE.}
+
 \item{stop.codon}{Stop codon appended to every coding sequence. Default "TAA".}
 
 \item{prefix, suffix}{Constant sequences placed before the coding sequence and after the stop
@@ -49,7 +67,8 @@ across the junctions; the returned cds does not contain them. Default none.}
 \value{
 data.table with columns: fasta, output, cmd, path. The output TSV has id, aa_len (number
 of residues), cds (with the stop codon), gc, max_homopolymer, translation_ok, sites (restriction sites, also counted
-across the junctions), constraints_ok, error.
+across the junctions), constraints_ok, max_donor, max_acceptor (highest MaxEntScan scores in the
+coding sequence), splice_design (limit that was met, "unconstrained" for the fallback, "none" without limits), error.
 }
 \description{
 Builds a shell command that reverse-translates every protein of a FASTA into a
@@ -57,7 +76,9 @@ coding sequence with DnaChisel: exact translation, codon usage matched to a spec
 (default human), GC content window, no recognition site of the listed restriction enzymes,
 no homopolymers and no AATAAA. Identical proteins get identical DNA, and the result is
 deterministic (the seed is a hash of the protein). The coding sequence starts with the codon of
-the first residue and ends with the stop codon \code{stop.codon}. A record that cannot be designed (letters other than the
+the first residue and ends with the stop codon \code{stop.codon}. Optionally every donor and acceptor
+splice site window inside the coding sequence must score below a MaxEntScan limit; this is
+enforced together with the codon optimisation. A record that cannot be designed (letters other than the
 20 amino acids, empty) does not stop the run: it gets an empty cds and the reason in \code{error}.
 Submit with \code{\link[=fn_submit]{fn_submit()}}.
 }
