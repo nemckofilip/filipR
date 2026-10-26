@@ -65,8 +65,8 @@ across the junctions; the returned cds does not contain them. Default none.}
 \item{cores}{Number of worker processes. Default 8.}
 }
 \value{
-data.table with columns: fasta, output, cmd, path. The output TSV has id, aa_len (number
-of residues), cds (with the stop codon), gc, max_homopolymer, translation_ok, sites (restriction sites, also counted
+data.table with columns: fasta, output, cmd, path. The output TSV has id, cds_len (number
+of nucleotides, with the stop codon), cds (with the stop codon), gc, max_homopolymer, translation_ok, sites (restriction sites, also counted
 across the junctions), constraints_ok, max_donor, max_acceptor (highest MaxEntScan scores in the
 coding sequence), splice_design (limit that was met, "unconstrained" for the fallback, "none" without limits), error.
 }

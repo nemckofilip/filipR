@@ -33,8 +33,8 @@
 #'   codon. They are not changed, but the restriction sites, homopolymers and AATAAA are also avoided
 #'   across the junctions; the returned cds does not contain them. Default none.
 #' @param cores Number of worker processes. Default 8.
-#' @return data.table with columns: fasta, output, cmd, path. The output TSV has id, aa_len (number
-#'   of residues), cds (with the stop codon), gc, max_homopolymer, translation_ok, sites (restriction sites, also counted
+#' @return data.table with columns: fasta, output, cmd, path. The output TSV has id, cds_len (number
+#'   of nucleotides, with the stop codon), cds (with the stop codon), gc, max_homopolymer, translation_ok, sites (restriction sites, also counted
 #'   across the junctions), constraints_ok, max_donor, max_acceptor (highest MaxEntScan scores in the
 #'   coding sequence), splice_design (limit that was met, "unconstrained" for the fallback, "none" without limits), error.
 #' @import data.table

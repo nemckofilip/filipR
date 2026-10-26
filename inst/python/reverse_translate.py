@@ -21,7 +21,7 @@ run: it gets an empty cds, FALSE flags and the reason in the column error.
 
 Usage:
   python3 reverse_translate.py proteins.faa --output cds.tsv --avoid XhoI,XbaI --threads 16
-Output TSV: id, aa_len, cds (with the stop codon), gc, max_homopolymer, translation_ok, sites, constraints_ok, max_donor, max_acceptor, splice_design, error
+Output TSV: id, cds_len (nt, with the stop codon), cds (with the stop codon), gc, max_homopolymer, translation_ok, sites, constraints_ok, max_donor, max_acceptor, splice_design, error
 """
 
 import argparse
@@ -223,10 +223,10 @@ def main():
     if nfail:
         print('WARNING: %d records with an error or an unmet constraint (see the column error)' % nfail, file=sys.stderr)
     with open(args.output + '.part', 'w') as out:
-        out.write('id\taa_len\tcds\tgc\tmax_homopolymer\ttranslation_ok\tsites\tconstraints_ok\tmax_donor\tmax_acceptor\tsplice_design\terror\n')
+        out.write('id\tcds_len\tcds\tgc\tmax_homopolymer\ttranslation_ok\tsites\tconstraints_ok\tmax_donor\tmax_acceptor\tsplice_design\terror\n')
         for i, p in zip(ids, prots):
             r = res[p]
-            out.write('%s\t%d\t%s\t%.4f\t%d\t%s\t%d\t%s\t%.2f\t%.2f\t%s\t%s\n' % (i, len(p), r['cds'], r['gc'], r['max_homopolymer'], r['translation_ok'], r['sites'], r['constraints_ok'], r['max_donor'], r['max_acceptor'], r['splice_design'], r['error']))
+            out.write('%s\t%d\t%s\t%.4f\t%d\t%s\t%d\t%s\t%.2f\t%.2f\t%s\t%s\n' % (i, len(r['cds']), r['cds'], r['gc'], r['max_homopolymer'], r['translation_ok'], r['sites'], r['constraints_ok'], r['max_donor'], r['max_acceptor'], r['splice_design'], r['error']))
     os.replace(args.output + '.part', args.output)
 
 
