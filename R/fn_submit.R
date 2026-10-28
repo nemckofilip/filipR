@@ -13,6 +13,7 @@
 #' @param cores Number of CPUs per task. Default: 4.
 #' @param mem Memory allocation (e.g., "16G"). Default: "16G".
 #' @param time Time limit (HH:MM:SS). Default: "04:00:00".
+#' @param gpus Number of GPUs (`--gres=gpu:N`). Default: 0 (none).
 #' @param logs Directory for log files and submission scripts. Default: "db/logs".
 #' @param conda_env Name of the conda environment to activate. Default: "/home/filip.nemcko/miniconda/envs/r_env".
 #' @param overwrite If TRUE, overwrites existing output files. Default: FALSE.
@@ -27,6 +28,7 @@ fn_submit <- function(cmd,
                       cores= 4,
                       mem= "16G",
                       time= "04:00:00",
+                      gpus= 0,
                       logs= "db/logs",
                       conda_env= "/home/filip.nemcko/miniconda/envs/r_env",
                       overwrite= FALSE,
@@ -71,6 +73,7 @@ fn_submit <- function(cmd,
     paste0("#SBATCH --mem=", mem),
     paste0("#SBATCH --time=", time)
   )
+  if(gpus > 0) header <- c(header, paste0("#SBATCH --gres=gpu:", gpus))
   
   # Environment setup
   # Derive conda base from the env path (e.g. ~/miniconda/envs/r_env ->
@@ -99,7 +102,9 @@ fn_submit <- function(cmd,
   if(execute) {
     # Submit using sbatch
     # --parsable returns only the job ID
-    submission <- system(paste("sbatch --parsable", script_path), intern=TRUE)
+    submission <- suppressWarnings(system(paste("sbatch --parsable", script_path), intern=TRUE))
+    if(length(submission) == 0 || !nzchar(submission[1]))
+      stop("sbatch failed for ", script_path, " (see the sbatch error above).")
     message(paste("Submitted batch job", submission))
     return(invisible(submission))
   } else {

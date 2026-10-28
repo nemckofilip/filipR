@@ -3,6 +3,7 @@
 S3method(fn_boxplot,default)
 S3method(fn_boxplot,formula)
 S3method(fn_boxplot,matrix)
+export(fn_alphafold3)
 export(fn_annotate_edit_calls)
 export(fn_bam_to_bed)
 export(fn_bowtie1_map)

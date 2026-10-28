@@ -11,6 +11,7 @@ fn_submit(
   cores = 4,
   mem = "16G",
   time = "04:00:00",
+  gpus = 0,
   logs = "db/logs",
   conda_env = "/home/filip.nemcko/miniconda/envs/r_env",
   overwrite = FALSE,
@@ -35,6 +36,8 @@ fn_submit(
 \item{mem}{Memory allocation (e.g., "16G"). Default: "16G".}
 
 \item{time}{Time limit (HH:MM:SS). Default: "04:00:00".}
+
+\item{gpus}{Number of GPUs (\code{--gres=gpu:N}). Default: 0 (none).}
 
 \item{logs}{Directory for log files and submission scripts. Default: "db/logs".}
 
