@@ -13,7 +13,7 @@ fn_alphafold3(
   jax.backend = "gpu",
   num.seeds = NULL,
   sif =
-    "/large_storage/hornslab/userspace/filip/references/alphafold3/alphafold3_v3.0.4.sif",
+    "/large_storage/hornslab/userspace/filip/references/alphafold3/alphafold3_v3.0.5.sif",
   model.dir = "/common_datasets/alphafold3/models/af3_weights",
   db.dir = "/common_datasets/alphafold3/databases/af3_dbs",
   cores = 8
