@@ -149,7 +149,7 @@ def attempt(protein, splice):
     a, b = len(pre), len(pre) + 3 * len(protein)
     cds_loc = Location(a, b)
     constraints = [EnforceTranslation(location=cds_loc),
-                   EnforceGCContent(mini=ARGS.gc_min, maxi=ARGS.gc_max, window=ARGS.gc_window, location=cds_loc)]
+                   EnforceGCContent(mini=ARGS.gc_min, maxi=ARGS.gc_max, window=ARGS.gc_window, location=Location(a, b + len(stop)))]   # the stop codon is part of the delivered CDS: its windows count too
     if pre:
         constraints.append(AvoidChanges(location=Location(0, a)))
     if suf:
